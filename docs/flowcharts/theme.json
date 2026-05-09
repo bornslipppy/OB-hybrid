@@ -1,0 +1,23 @@
+{
+  "name": "Professional Blue",
+  "description": "B2B SaaS onboarding flow theme — aligns with Guesty-style brand blue.",
+  "colors": {
+    "primaryFill": "#e3f2fd",
+    "accent": "#1976d2",
+    "decision": "#fff3e0",
+    "decisionBorder": "#f57c00",
+    "text": "#1e1e1e",
+    "background": "#ffffff"
+  },
+  "typography": {
+    "fontFamily": 2,
+    "fontSize": 16,
+    "titleFontSize": 24,
+    "labelFontSize": 14,
+    "lineHeight": 1.25
+  },
+  "layout": {
+    "gridSize": 20,
+    "minSpacing": 60
+  }
+}

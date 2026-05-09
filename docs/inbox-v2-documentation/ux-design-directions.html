@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar-Based Automations - Design Directions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito Sans', sans-serif;
+            background: #f5f5f5;
+            color: #424242;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        .header {
+            background: white;
+            padding: 24px 32px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #212121;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #757575;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: #757575;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .nav-tab:hover {
+            color: #424242;
+        }
+
+        .nav-tab.active {
+            color: #17847B;
+            border-bottom-color: #17847B;
+        }
+
+        .direction-card {
+            background: white;
+            border-radius: 8px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .direction-card.active {
+            display: block;
+        }
+
+        .direction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .direction-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #212121;
+            margin-bottom: 8px;
+        }
+
+        .direction-subtitle {
+            font-size: 14px;
+            color: #757575;
+        }
+
+        .direction-meta {
+            text-align: right;
+        }
+
+        .direction-label {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #E3F2FD;
+            color: #1565C0;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .mockup-section {
+            margin-bottom: 32px;
+        }
+
+        .mockup-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #212121;
+            margin-bottom: 16px;
+        }
+
+        .mockup-container {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        /* Trigger Card Styles */
+        .trigger-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        .trigger-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .trigger-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .trigger-info {
+            flex: 1;
+        }
+
+        .trigger-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #424242;
+            margin-bottom: 4px;
+        }
+
+        .trigger-schedule {
+            font-size: 14px;
+            color: #757575;
+        }
+
+        .trigger-schedule .icon {
+            margin-right: 4px;
+        }
+
+        .trigger-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.active {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .badge.paused {
+            background: #FFF9C4;
+            color: #F57F17;
+        }
+
+        .badge.error {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+
+        .status-dot.green {
+            background: #4CAF50;
+        }
+
+        .status-dot.yellow {
+            background: #FBC02D;
+        }
+
+        .status-dot.red {
+            background: #EF5350;
+        }
+
+        .next-send {
+            font-size: 12px;
+            color: #9E9E9E;
+        }
+
+        /* Day Selector Styles */
+        .day-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .day-btn {
+            width: 44px;
+            height: 44px;
+            border: 1px solid #e0e0e0;
+            border-radius: 50%;
+            background: white;
+            font-size: 14px;
+            font-weight: 500;
+            color: #757575;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .day-btn:hover {
+            border-color: #17847B;
+            background: #E0F2F1;
+        }
+
+        .day-btn.selected {
+            background: #17847B;
+            color: white;
+            border-color: #17847B;
+        }
+
+        .shortcut-btns {
+            display: flex;
+            gap: 8px;
+            margin-left: 16px;
+        }
+
+        .shortcut-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
+            background: white;
+            font-size: 12px;
+            font-weight: 500;
+            color: #757575;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shortcut-btn:hover {
+            border-color: #17847B;
+            background: #E0F2F1;
+            color: #17847B;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #17847B;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0F5D56;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #757575;
+            border: 1px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #fafafa;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #424242;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Nunito Sans', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #17847B;
+        }
+
+        /* Expandable Content */
+        .trigger-expanded {
+            display: none;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 16px;
+        }
+
+        .trigger-card.expanded .trigger-expanded {
+            display: block;
+        }
+
+        .expand-icon {
+            transition: transform 0.2s;
+        }
+
+        .trigger-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Comparison Grid */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .comparison-item {
+            padding: 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+
+        .comparison-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #757575;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .comparison-value {
+            font-size: 14px;
+            color: #424242;
+        }
+
+        /* Pros/Cons */
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .pros, .cons {
+            padding: 16px;
+            border-radius: 6px;
+        }
+
+        .pros {
+            background: #E8F5E9;
+        }
+
+        .cons {
+            background: #FFEBEE;
+        }
+
+        .pros h4, .cons h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .pros h4 {
+            color: #2E7D32;
+        }
+
+        .cons h4 {
+            color: #C62828;
+        }
+
+        .pros ul, .cons ul {
+            list-style: none;
+            font-size: 13px;
+        }
+
+        .pros li, .cons li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .pros li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #2E7D32;
+            font-weight: 700;
+        }
+
+        .cons li:before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #C62828;
+            font-weight: 700;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 16px 32px;
+            border-top: 1px solid #e0e0e0;
+            position: sticky;
+            bottom: 0;
+            margin: 32px -32px -32px;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Calendar-Based Automations - Design Directions</h1>
+            <p>Explore 6 different visual and interaction design approaches for calendar trigger configuration</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-direction="1">Direction 1: Inline Expansion</button>
+            <button class="nav-tab" data-direction="2">Direction 2: Side Panel</button>
+            <button class="nav-tab" data-direction="3">Direction 3: Compact Dashboard</button>
+            <button class="nav-tab" data-direction="4">Direction 4: Status-First</button>
+            <button class="nav-tab" data-direction="5">Direction 5: Visual Calendar</button>
+            <button class="nav-tab" data-direction="6">Direction 6: Minimalist</button>
+        </div>
+
+        <!-- Direction 1: Inline Expansion (Intercom-inspired) -->
+        <div class="direction-card active" data-direction="1">
+            <div class="direction-header">
+                <div>
+                    <div class="direction-title">Direction 1: Inline Expansion (Intercom-inspired)</div>
+                    <div class="direction-subtitle">Click to expand triggers inline - no modal navigation, contextual editing</div>
+                </div>
+                <div class="direction-meta">
+                    <div class="direction-label">RECOMMENDED</div>
+                    <div class="next-send">Inspired by: Intercom, Linear</div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Calendar Trigger Configuration - Collapsed View</h3>
+                <div class="mockup-container">
+                    <div class="trigger-card" onclick="this.classList.toggle('expanded')">
+                        <div class="trigger-header">
+                            <div class="trigger-info">
+                                <div class="trigger-title">Trash Day Reminder</div>
+                                <div class="trigger-schedule">
+                                    <span class="icon">📅</span>
+                                    Every Thursday at 8:00 AM
+                                </div>
+                            </div>
+                            <div class="trigger-meta">
+                                <span class="badge active">
+                                    <span class="status-dot green"></span>
+                                    Active
+                                </span>
+                                <span class="next-send">Next: Thu, May 18 (in 2 days)</span>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                        </div>
+                        <div class="trigger-expanded">
+                            <div class="form-group">
+                                <label class="form-label">Days</label>
+                                <div style="display: flex; align-items: center;">
+                                    <div class="day-selector">
+                                        <button class="day-btn">S</button>
+                                        <button class="day-btn">M</button>
+                                        <button class="day-btn">T</button>
+                                        <button class="day-btn">W</button>
+                                        <button class="day-btn selected">T</button>
+                                        <button class="day-btn">F</button>
+                                        <button class="day-btn">S</button>
+                                    </div>
+                                    <div class="shortcut-btns">
+                                        <button class="shortcut-btn">Weekdays</button>
+                                        <button class="shortcut-btn">Weekends</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-input" value="08:00" style="width: 200px;">
+                                <span style="font-size: 12px; color: #9E9E9E; margin-left: 12px;">EDT - Property local time</span>
+                            </div>
+                            <div class="form-group">
+                                <details>
+                                    <summary style="cursor: pointer; font-size: 14px; font-weight: 500; color: #17847B;">Advanced Options</summary>
+                                    <div style="margin-top: 12px;">
+                                        <label class="form-label">Date Range (Optional)</label>
+                                        <div style="display: flex; gap: 12px;">
+                                            <input type="date" class="form-input" placeholder="Start date">
+                                            <input type="date" class="form-input" placeholder="End date">
+                                        </div>
+                                    </div>
+                                </details>
+                            </div>
+                            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                                <button class="btn btn-primary">Save Changes</button>
+                                <button class="btn btn-secondary">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="trigger-card">
+                        <div class="trigger-header">
+                            <div class="trigger-info">
+                                <div class="trigger-title">Pool Service Reminder</div>
+                                <div class="trigger-schedule">
+                                    <span class="icon">📅</span>
+                                    Monday, Wednesday, Friday at 9:00 AM
+                                </div>
+                            </div>
+                            <div class="trigger-meta">
+                                <span class="badge active">
+                                    <span class="status-dot green"></span>
+                                    Active
+                                </span>
+                                <span class="next-send">Next: Wed, May 17 (tomorrow)</span>
+                                <span class="expand-icon">▼</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="margin-top: 16px;">+ Add Calendar Trigger</button>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Key Features</h3>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <div class="comparison-label">Layout Pattern</div>
+                        <div class="comparison-value">Inline expansion within list</div>
+                    </div>
+                    <div class="comparison-item">
+                        <div class="comparison-label">Day Selector</div>
+                        <div class="comparison-value">Circular button toggles with shortcuts</div>
+                    </div>
+                    <div class="comparison-item">
+                        <div class="comparison-label">Status Display</div>
+                        <div class="comparison-value">Badge with colored dot + countdown</div>
+                    </div>
+                    <div class="comparison-item">
+                        <div class="comparison-label">Density</div>
+                        <div class="comparison-value">Comfortable - 16px padding</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Evaluation</h3>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Pros</h4>
+                        <ul>
+                            <li>No modal navigation - stay in context</li>
+                            <li>Collapsed view shows all critical info</li>
+                            <li>Inline editing feels fast and lightweight</li>
+                            <li>Matches established Intercom pattern</li>
+                            <li>Easy to scan multiple triggers</li>
+                            <li>Progressive disclosure hides complexity</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Cons</h4>
+                        <ul>
+                            <li>Expanded view pushes content down (page jump)</li>
+                            <li>Limited vertical space for long lists</li>
+                            <li>May feel constrained on smaller screens</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direction 2: Side Panel -->
+        <div class="direction-card" data-direction="2">
+            <div class="direction-header">
+                <div>
+                    <div class="direction-title">Direction 2: Side Panel Configuration</div>
+                    <div class="direction-subtitle">Slide-out panel for focused editing - stable dashboard view</div>
+                </div>
+                <div class="direction-meta">
+                    <div class="direction-label">ALTERNATIVE</div>
+                    <div class="next-send">Inspired by: Asana, Notion</div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Dashboard + Side Panel</h3>
+                <div class="mockup-container">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+                        <div>
+                            <div class="trigger-card">
+                                <div class="trigger-header">
+                                    <div class="trigger-info">
+                                        <div class="trigger-title">Trash Day Reminder</div>
+                                        <div class="trigger-schedule">
+                                            <span class="icon">📅</span>
+                                            Every Thursday at 8:00 AM
+                                        </div>
+                                    </div>
+                                    <div class="trigger-meta">
+                                        <span class="badge active">
+                                            <span class="status-dot green"></span>
+                                            Active
+                                        </span>
+                                        <span class="next-send">Next: Thu, May 18</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="trigger-card">
+                                <div class="trigger-header">
+                                    <div class="trigger-info">
+                                        <div class="trigger-title">Pool Service Reminder</div>
+                                        <div class="trigger-schedule">
+                                            <span class="icon">📅</span>
+                                            M, W, F at 9:00 AM
+                                        </div>
+                                    </div>
+                                    <div class="trigger-meta">
+                                        <span class="badge active">
+                                            <span class="status-dot green"></span>
+                                            Active
+                                        </span>
+                                        <span class="next-send">Next: Wed, May 17</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: white; border: 2px solid #17847B; border-radius: 8px; padding: 16px;">
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>Edit Trigger</span>
+                                <button class="btn btn-secondary" style="padding: 4px 8px;">✕</button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Days</label>
+                                <div class="day-selector">
+                                    <button class="day-btn">S</button>
+                                    <button class="day-btn">M</button>
+                                    <button class="day-btn">T</button>
+                                    <button class="day-btn">W</button>
+                                    <button class="day-btn selected">T</button>
+                                    <button class="day-btn">F</button>
+                                    <button class="day-btn">S</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Time</label>
+                                <input type="time" class="form-input" value="08:00">
+                            </div>
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 16px;">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Evaluation</h3>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Pros</h4>
+                        <ul>
+                            <li>Dashboard stays stable (no content jump)</li>
+                            <li>Focused editing space - more room for controls</li>
+                            <li>Can show trigger details + history in panel</li>
+                            <li>Familiar pattern (Asana, Notion, Slack)</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Cons</h4>
+                        <ul>
+                            <li>Adds navigation step (click to open panel)</li>
+                            <li>Takes up horizontal screen space</li>
+                            <li>May feel disconnected from trigger list</li>
+                            <li>Less suitable for quick edits</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direction 3: Compact Dashboard -->
+        <div class="direction-card" data-direction="3">
+            <div class="direction-header">
+                <div>
+                    <div class="direction-title">Direction 3: Compact Dashboard</div>
+                    <div class="direction-subtitle">Dense layout, max triggers visible - optimized for power users with many automations</div>
+                </div>
+                <div class="direction-meta">
+                    <div class="direction-label">HIGH DENSITY</div>
+                    <div class="next-send">Inspired by: Gmail, Trello</div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Compact Trigger List</h3>
+                <div class="mockup-container">
+                    <div class="trigger-card" style="padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 13px; font-weight: 600; color: #424242;">Trash Day Reminder</div>
+                                <div style="font-size: 12px; color: #757575;">📅 Thu 8:00 AM | Next: May 18</div>
+                            </div>
+                            <span class="badge active" style="padding: 2px 8px;">Active</span>
+                        </div>
+                    </div>
+                    <div class="trigger-card" style="padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 13px; font-weight: 600; color: #424242;">Pool Service Reminder</div>
+                                <div style="font-size: 12px; color: #757575;">📅 M, W, F 9:00 AM | Next: May 17</div>
+                            </div>
+                            <span class="badge active" style="padding: 2px 8px;">Active</span>
+                        </div>
+                    </div>
+                    <div class="trigger-card" style="padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 13px; font-weight: 600; color: #424242;">Weekly Report</div>
+                                <div style="font-size: 12px; color: #757575;">📅 Mon 10:00 AM | Next: May 22</div>
+                            </div>
+                            <span class="badge active" style="padding: 2px 8px;">Active</span>
+                        </div>
+                    </div>
+                    <div class="trigger-card" style="padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 13px; font-weight: 600; color: #424242;">Lawn Care Alert</div>
+                                <div style="font-size: 12px; color: #757575;">📅 Tue, Sat 7:00 AM | Next: May 20</div>
+                            </div>
+                            <span class="badge paused" style="padding: 2px 8px;">Paused</span>
+                        </div>
+                    </div>
+                    <div class="trigger-card" style="padding: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 13px; font-weight: 600; color: #424242;">Check-in Instructions</div>
+                                <div style="font-size: 12px; color: #757575;">📅 Weekdays 3:00 PM | Next: May 16</div>
+                            </div>
+                            <span class="badge active" style="padding: 2px 8px;">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Evaluation</h3>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Pros</h4>
+                        <ul>
+                            <li>Maximum triggers visible at once (scanning efficiency)</li>
+                            <li>Less scrolling for power users with 10+ triggers</li>
+                            <li>Quick status overview at a glance</li>
+                            <li>Efficient use of vertical space</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Cons</h4>
+                        <ul>
+                            <li>Less breathing room - feels cramped</li>
+                            <li>Smaller text may reduce readability</li>
+                            <li>Not suitable for new users (overwhelming)</li>
+                            <li>Less space for contextual information</li>
+                            <li>May not meet accessibility touch targets (44px)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direction 4: Status-First -->
+        <div class="direction-card" data-direction="4">
+            <div class="direction-header">
+                <div>
+                    <div class="direction-title">Direction 4: Status-First Dashboard</div>
+                    <div class="direction-subtitle">Emphasize automation status and celebration metrics - "set it and forget it" confidence</div>
+                </div>
+                <div class="direction-meta">
+                    <div class="direction-label">CELEBRATION FOCUS</div>
+                    <div class="next-send">Inspired by: monday.com, Zapier</div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Status Dashboard + Triggers</h3>
+                <div class="mockup-container">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div style="background: #E8F5E9; padding: 16px; border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #2E7D32; text-transform: uppercase;">Active Triggers</div>
+                            <div style="font-size: 32px; font-weight: 700; color: #2E7D32; margin-top: 8px;">4</div>
+                            <div style="font-size: 12px; color: #558B2F; margin-top: 4px;">✓ All running smoothly</div>
+                        </div>
+                        <div style="background: #E3F2FD; padding: 16px; border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #1565C0; text-transform: uppercase;">Messages Sent</div>
+                            <div style="font-size: 32px; font-weight: 700; color: #1565C0; margin-top: 8px;">156</div>
+                            <div style="font-size: 12px; color: #1976D2; margin-top: 4px;">This month</div>
+                        </div>
+                        <div style="background: #FFF9C4; padding: 16px; border-radius: 8px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #F57F17; text-transform: uppercase;">Time Saved</div>
+                            <div style="font-size: 32px; font-weight: 700; color: #F57F17; margin-top: 8px;">6h</div>
+                            <div style="font-size: 12px; color: #F9A825; margin-top: 4px;">This week</div>
+                        </div>
+                    </div>
+
+                    <div class="trigger-card">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                    <span class="badge active" style="font-size: 14px; padding: 6px 12px;">
+                                        <span class="status-dot green"></span>
+                                        Active
+                                    </span>
+                                    <div class="trigger-title">Trash Day Reminder</div>
+                                </div>
+                                <div class="trigger-schedule">
+                                    <span class="icon">📅</span>
+                                    Every Thursday at 8:00 AM
+                                </div>
+                                <div style="margin-top: 8px; font-size: 13px; color: #17847B; font-weight: 600;">
+                                    Next send: Thu, May 18 at 8:00 AM (in 2 days)
+                                </div>
+                                <div style="margin-top: 8px; font-size: 12px; color: #9E9E9E;">
+                                    ✓ 24 messages sent | Last: Thu, May 11 at 8:00 AM
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Evaluation</h3>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Pros</h4>
+                        <ul>
+                            <li>Celebrates automation success (emotional goal)</li>
+                            <li>Prominent status builds trust and confidence</li>
+                            <li>Metrics provide ROI visibility (time saved)</li>
+                            <li>Satisfies "transparency over uncertainty" principle</li>
+                            <li>Large status badges easy to scan</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Cons</h4>
+                        <ul>
+                            <li>Takes vertical space from trigger list</li>
+                            <li>Metrics may feel "noisy" for users with few triggers</li>
+                            <li>Status repeated in both metrics and triggers</li>
+                            <li>Less focus on trigger configuration</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direction 5: Visual Calendar -->
+        <div class="direction-card" data-direction="5">
+            <div class="direction-header">
+                <div>
+                    <div class="direction-title">Direction 5: Visual Calendar Day Picker</div>
+                    <div class="direction-subtitle">Calendar-style day selector with visual monthly preview</div>
+                </div>
+                <div class="direction-meta">
+                    <div class="direction-label">VISUAL METAPHOR</div>
+                    <div class="next-send">Inspired by: Google Calendar, Apple Calendar</div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Calendar-Style Configuration</h3>
+                <div class="mockup-container">
+                    <div class="trigger-card">
+                        <div class="trigger-header">
+                            <div class="trigger-info">
+                                <div class="trigger-title">Trash Day Reminder</div>
+                                <div class="trigger-schedule">
+                                    <span class="icon">📅</span>
+                                    Every Thursday at 8:00 AM
+                                </div>
+                            </div>
+                            <div class="trigger-meta">
+                                <span class="badge active">
+                                    <span class="status-dot green"></span>
+                                    Active
+                                </span>
+                                <span class="next-send">Next: Thu, May 18</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-top: 16px;">
+                        <div style="font-size: 14px; font-weight: 600; margin-bottom: 16px;">Add Calendar Trigger</div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Select Days</label>
+                            <div style="display: inline-grid; grid-template-columns: repeat(7, 1fr); gap: 8px; max-width: 400px;">
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">S</div>
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">M</div>
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">T</div>
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">W</div>
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">T</div>
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">F</div>
+                                <div style="text-align: center; font-size: 12px; color: #757575; padding: 8px;">S</div>
+                                
+                                <button class="day-btn">1</button>
+                                <button class="day-btn">2</button>
+                                <button class="day-btn">3</button>
+                                <button class="day-btn selected">4</button>
+                                <button class="day-btn">5</button>
+                                <button class="day-btn">6</button>
+                                <button class="day-btn">7</button>
+                                
+                                <button class="day-btn">8</button>
+                                <button class="day-btn">9</button>
+                                <button class="day-btn">10</button>
+                                <button class="day-btn selected">11</button>
+                                <button class="day-btn">12</button>
+                                <button class="day-btn">13</button>
+                                <button class="day-btn">14</button>
+                            </div>
+                            <div style="margin-top: 12px;">
+                                <button class="shortcut-btn">Every Thursday</button>
+                                <button class="shortcut-btn">Weekdays</button>
+                                <button class="shortcut-btn">Weekends</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Evaluation</h3>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Pros</h4>
+                        <ul>
+                            <li>Strong calendar metaphor - instantly understandable</li>
+                            <li>Visual preview of when messages send (dates)</li>
+                            <li>Familiar pattern from Google/Apple Calendar</li>
+                            <li>Can show existing sends on calendar (if needed)</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Cons</h4>
+                        <ul>
+                            <li>Takes significant vertical space</li>
+                            <li>Overkill for simple weekly patterns (every Thursday)</li>
+                            <li>Monthly view may confuse recurring weekly patterns</li>
+                            <li>Complex to implement for "every Thursday" vs specific dates</li>
+                            <li>Not suitable for weekday-based patterns (M-F)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direction 6: Minimalist -->
+        <div class="direction-card" data-direction="6">
+            <div class="direction-header">
+                <div>
+                    <div class="direction-title">Direction 6: Minimalist Clean</div>
+                    <div class="direction-subtitle">Maximum whitespace, focus on essentials - zen-like simplicity</div>
+                </div>
+                <div class="direction-meta">
+                    <div class="direction-label">MINIMALIST</div>
+                    <div class="next-send">Inspired by: Apple, Things 3</div>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Minimalist Trigger List</h3>
+                <div class="mockup-container">
+                    <div style="padding: 24px; background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #f5f5f5;">
+                            <div>
+                                <div style="font-size: 16px; font-weight: 600; color: #212121; margin-bottom: 4px;">Trash Day Reminder</div>
+                                <div style="font-size: 14px; color: #9E9E9E;">Every Thursday at 8:00 AM</div>
+                            </div>
+                            <span style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%;"></span>
+                        </div>
+                        <div style="padding-top: 12px; font-size: 13px; color: #757575;">
+                            Next send: Thursday, May 18
+                        </div>
+                    </div>
+
+                    <div style="padding: 24px; background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #f5f5f5;">
+                            <div>
+                                <div style="font-size: 16px; font-weight: 600; color: #212121; margin-bottom: 4px;">Pool Service Reminder</div>
+                                <div style="font-size: 14px; color: #9E9E9E;">M, W, F at 9:00 AM</div>
+                            </div>
+                            <span style="width: 12px; height: 12px; background: #4CAF50; border-radius: 50%;"></span>
+                        </div>
+                        <div style="padding-top: 12px; font-size: 13px; color: #757575;">
+                            Next send: Wednesday, May 17
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary">+ Add Calendar Trigger</button>
+                </div>
+            </div>
+
+            <div class="mockup-section">
+                <h3>Evaluation</h3>
+                <div class="pros-cons">
+                    <div class="pros">
+                        <h4>✓ Pros</h4>
+                        <ul>
+                            <li>Clean, uncluttered interface</li>
+                            <li>Maximum breathing room between elements</li>
+                            <li>Focus on essential information only</li>
+                            <li>Feels premium and refined</li>
+                            <li>Reduces cognitive load</li>
+                        </ul>
+                    </div>
+                    <div class="cons">
+                        <h4>✗ Cons</h4>
+                        <ul>
+                            <li>Inefficient use of vertical space</li>
+                            <li>Fewer triggers visible at once (more scrolling)</li>
+                            <li>Minimal status indicators may reduce confidence</li>
+                            <li>Not suitable for power users with many triggers</li>
+                            <li>May feel "too simple" for complex automation needs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <div>
+                <strong>Next Step:</strong> Choose your preferred direction or combine elements from multiple directions
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-secondary">Compare Directions</button>
+                <button class="btn btn-primary">Make Selection</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab navigation
+        const tabs = document.querySelectorAll('.nav-tab');
+        const cards = document.querySelectorAll('.direction-card');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const direction = tab.dataset.direction;
+                
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update active card
+                cards.forEach(c => c.classList.remove('active'));
+                document.querySelector(`.direction-card[data-direction="${direction}"]`).classList.add('active');
+            });
+        });
+
+        // Expandable triggers
+        document.querySelectorAll('.trigger-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.closest('button') && !e.target.closest('input')) {
+                    this.classList.toggle('expanded');
+                }
+            });
+        });
+
+        // Day selector interaction
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('selected');
+            });
+        });
+    </script>
+</body>
+</html>

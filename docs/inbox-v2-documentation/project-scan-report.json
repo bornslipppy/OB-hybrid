@@ -1,0 +1,39 @@
+{
+    "workflow_version": "1.2.0",
+    "timestamps": {
+        "started": "2026-02-11T14:26:32Z",
+        "last_updated": "2026-02-11T14:26:32Z",
+        "completed": "2026-02-11T14:26:32Z"
+    },
+    "mode": "initial_scan",
+    "scan_level": "quick",
+    "project_root": "/Users/yair.cohen/Documents/GitHub/inbox-v2",
+    "output_folder": "docs/inbox-v2-documentation",
+    "completed_steps": [
+        {
+            "step": "complete",
+            "status": "completed",
+            "timestamp": "2026-02-11T14:26:32Z",
+            "summary": "Quick scan complete - React 18 multi-channel inbox with 10 core modules"
+        }
+    ],
+    "current_step": "completed",
+    "findings": {
+        "project_classification": "Single-part React SPA",
+        "technology_stack": "React 18, Redux, multi-channel messaging",
+        "modules_count": "10 core feature modules"
+    },
+    "project_types": [
+        {
+            "part_id": "main",
+            "project_type_id": "web",
+            "display_name": "React Web Application"
+        }
+    ],
+    "outputs_generated": [
+        "project-scan-report.json",
+        "project-overview.md",
+        "index.md"
+    ],
+    "resume_instructions": "Documentation complete"
+}
