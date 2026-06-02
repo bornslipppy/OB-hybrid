@@ -70,3 +70,28 @@ transcript (above) and confirming no `profiles/scored/` file was read.
 | `tree/__init__.py` | Package export for `TreeSystem` |
 | `tree/capability-ledger.md` | Coverage map, fallbacks, authoring time, maintenance cost |
 | `tree/AUTHORSHIP.md` | This document |
+
+---
+
+## Anti-Leakage Co-Sign (FR-9 / Story 2.5)
+
+| Field | Value |
+|-------|-------|
+| Reviewer | Yair Cohen |
+| Date | 2026-06-02 |
+| Transcript reviewed | agent-transcripts/471303f8-700a-4286-a2b1-0afea8e9518a |
+| Git check 1 | `git log --all --oneline -- "poc-eval-harness/profiles/scored/"` → empty |
+| Git check 2 | `git log --all --oneline -- "poc-eval-harness/profiles/"` → empty |
+| Tree commit audited | 5244548f (4 files: tree.py, __init__.py, AUTHORSHIP.md, capability-ledger.md) |
+
+I independently verified: (1) `git log --all` shows zero commits touching
+`profiles/scored/` or `profiles/` at any point in history; (2) the Epic 2 tree
+commit (5244548f) introduced only the four tree artifacts and no profile or
+answer-key files; (3) the authoring-session transcript shows no `Read`, `Glob`,
+`Shell`, or `Grep` tool call on any path under `profiles/` — the single occurrence
+of the string "profiles/scored/" in the transcript is the constraint instruction in
+the user prompt, not an agent file access. The blind-authoring attestation recorded
+above is corroborated. I co-sign that the tree was authored blind to the test
+profiles.
+
+— Yair Cohen (product owner / human collaborator)
