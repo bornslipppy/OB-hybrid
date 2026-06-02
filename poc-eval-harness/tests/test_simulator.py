@@ -3,7 +3,7 @@
 What these tests verify:
   1. RespondentSpec rejects answer-key fields (FR-19/FR-20 fairness invariant).
   2. Group A scripted mode: slot-keyed lookup, variant overrides, fallback.
-  3. LLM mode requires an OpenAI client — scripted Group A never calls LLM.
+  3. LLM mode requires a Gemini client — scripted Group A never calls LLM.
   4. The scripted turns yaml is loadable and has expected keys.
   5. reply() in scripted mode never fabricates facts absent from the spec.
   6. reset() clears conversation history.
@@ -98,12 +98,16 @@ def b1_spec() -> RespondentSpec:
 
 
 @pytest.fixture
-def mock_openai() -> MagicMock:
-    client = MagicMock()
-    choice = MagicMock()
-    choice.message.content = "Mock LLM reply"
-    client.chat.completions.create.return_value = MagicMock(choices=[choice])
-    return client
+def mock_gemini() -> MagicMock:
+    """A _GeminiLike callable factory mock.
+
+    ``mock_gemini(system_instruction)`` → mock model whose
+    ``generate_content(contents, ...).text`` returns ``"Mock LLM reply"``.
+    """
+    mock_model = MagicMock()
+    mock_model.generate_content.return_value.text = "Mock LLM reply"
+    factory = MagicMock(return_value=mock_model)
+    return factory
 
 
 # ---------------------------------------------------------------------------
@@ -143,12 +147,12 @@ class TestSimulatorModeDetection:
         sim = UserSimulator(a1_spec)
         assert sim.mode is SimulatorMode.SCRIPTED
 
-    def test_group_b_defaults_to_llm_mode(self, b1_spec, mock_openai):
-        sim = UserSimulator(b1_spec, openai_client=mock_openai)
+    def test_group_b_defaults_to_llm_mode(self, b1_spec, mock_gemini):
+        sim = UserSimulator(b1_spec, gemini_client=mock_gemini)
         assert sim.mode is SimulatorMode.LLM
 
     def test_group_b_without_client_raises(self, b1_spec):
-        with pytest.raises(ValueError, match="openai_client"):
+        with pytest.raises(ValueError, match="gemini_client"):
             UserSimulator(b1_spec)
 
     def test_mode_can_be_overridden_to_scripted(self, b1_spec):
@@ -223,33 +227,30 @@ class TestGroupAScriptedReplies:
 
 
 class TestLLMSimulatorPath:
-    def test_llm_reply_calls_openai(self, b1_spec, mock_openai):
-        sim = UserSimulator(b1_spec, openai_client=mock_openai)
+    def test_llm_reply_calls_gemini(self, b1_spec, mock_gemini):
+        sim = UserSimulator(b1_spec, gemini_client=mock_gemini)
         q = UserQuestion(text="How do you handle payment timing?", primary_slot="payment_timing")
         reply = sim.reply(q)
         assert reply == "Mock LLM reply"
-        mock_openai.chat.completions.create.assert_called_once()
+        mock_gemini.assert_called_once()  # factory called once to build the model
 
-    def test_llm_system_prompt_excludes_answer_key(self, b1_spec, mock_openai):
-        sim = UserSimulator(b1_spec, openai_client=mock_openai)
+    def test_llm_system_prompt_excludes_answer_key(self, b1_spec, mock_gemini):
+        """The system instruction passed to the Gemini factory must not contain answer-key fields."""
+        sim = UserSimulator(b1_spec, gemini_client=mock_gemini)
         q = UserQuestion(text="Tell me about your listings.", primary_slot=None)
         sim.reply(q)
-        call_kwargs = mock_openai.chat.completions.create.call_args
-        messages = call_kwargs.kwargs.get("messages", call_kwargs.args[0] if call_kwargs.args else [])
-        system_content = next(
-            (m["content"] for m in messages if m.get("role") == "system"), ""
-        )
-        assert "answer_key" not in system_content.lower()
-        assert "disposition" not in system_content.lower()
+        system_instruction = mock_gemini.call_args.args[0]
+        assert "answer_key" not in system_instruction.lower()
+        assert "disposition" not in system_instruction.lower()
 
-    def test_llm_history_accumulates(self, b1_spec, mock_openai):
-        sim = UserSimulator(b1_spec, openai_client=mock_openai, mode=SimulatorMode.LLM)
+    def test_llm_history_accumulates(self, b1_spec, mock_gemini):
+        sim = UserSimulator(b1_spec, gemini_client=mock_gemini, mode=SimulatorMode.LLM)
         sim.reply(UserQuestion(text="First question", primary_slot=None))
         sim.reply(UserQuestion(text="Second question", primary_slot=None))
         assert len(sim._history) == 4  # 2x (user + assistant)
 
-    def test_reset_clears_history(self, b1_spec, mock_openai):
-        sim = UserSimulator(b1_spec, openai_client=mock_openai)
+    def test_reset_clears_history(self, b1_spec, mock_gemini):
+        sim = UserSimulator(b1_spec, gemini_client=mock_gemini)
         sim.reply(UserQuestion(text="Hello", primary_slot=None))
         sim.reset()
         assert sim._history == []

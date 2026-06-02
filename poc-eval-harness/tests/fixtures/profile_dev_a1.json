@@ -1,0 +1,28 @@
+{
+  "_comment": "DEV profile A1 — Group A, all_self_owned, simple linear path. Used for agent unit tests; never scored.",
+  "profile_id": "dev_A1",
+  "group": "A",
+  "tuning_only": true,
+  "facts": {
+    "listing_count": 3,
+    "channels": ["airbnb", "booking"],
+    "go_live": "2-4w",
+    "ownership_model": "all_self_owned",
+    "payment_timing": "at_booking",
+    "focus_topics": ["guest_messaging", "pricing_strategy"],
+    "pain": "I spend too much time answering the same guest questions"
+  },
+  "persona": "Straightforward self-managing host, no managers or owners. Answers directly, no ambiguity.",
+  "answer_key": {
+    "listing_count": "recorded:3",
+    "channels": "recorded:[\"airbnb\",\"booking\"]",
+    "go_live": "recorded:2-4w",
+    "ownership_model": "recorded:all_self_owned",
+    "focus_topics": "recorded:[\"guest_messaging\",\"pricing_strategy\"]",
+    "pain": "recorded:I spend too much time answering the same guest questions",
+    "payment_timing": "recorded:at_booking",
+    "taxes": "flagged",
+    "decision_owner": "recorded:just_me"
+  },
+  "_note": "owners slot MUST NOT appear in scope (ownership_model=all_self_owned). S5 MUST NOT surface (no direct channel)."
+}

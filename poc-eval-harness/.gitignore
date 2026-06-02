@@ -20,6 +20,12 @@ profiles/raw/
 campaigns/
 !campaigns/proto-manifest.json
 
+# Scaffold dirs: track the .gitkeep placeholder, ignore generated content.
+runs/*
+!runs/.gitkeep
+reports/*
+!reports/.gitkeep
+
 # Secrets / API keys
 .env.local
 .env.*.local

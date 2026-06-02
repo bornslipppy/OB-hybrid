@@ -9,20 +9,21 @@ version = "0.1.0"
 # --- Providers ---------------------------------------------------------------
 # D-3 / FR-21: agent and simulator MUST be different provider families.
 # Config-validated at startup; a same-family config aborts the run.
+# Models MUST be pinned dated snapshots, NEVER a -latest / floating alias (R-7).
+# config_loader rejects any model containing "latest" at startup. These pinned
+# snapshots are hashed into the freeze manifest, so changing one re-freezes the run.
 [providers.agent]
-family   = "anthropic"
-# Pin a dated model snapshot — NEVER a -latest alias (R-7).
-# Placeholder: replace with the ratified snapshot before a frozen run.
-model    = "claude-opus-4-6"
+family   = "cursor"
+model    = "claude-opus-4-6"          # ratified agent snapshot (served via Cursor API)
 
 [providers.simulator]
-family   = "openai"
-model    = "gpt-4.1-2025-04-14"
+family   = "gemini"
+model    = "gemini-1.5-pro-002"       # ratified simulator snapshot (decorrelated family)
 
 [providers.extractor]
-# H2 extractor shares the same provider family as the agent (Anthropic).
-family   = "anthropic"
-model    = "claude-opus-4-6"
+# H2 extractor uses the same provider family as the agent (Cursor API / Claude).
+family   = "cursor"
+model    = "claude-opus-4-6"          # ratified extractor snapshot
 
 # --- Temperature policy ------------------------------------------------------
 # D-2 / FR-6: temperature is a call-type, not an argument. These values are

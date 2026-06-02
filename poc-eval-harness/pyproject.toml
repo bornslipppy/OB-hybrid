@@ -10,8 +10,8 @@ authors = [{ name = "Amelia (harness engineer)" }]
 # (provider-decorrelation, FR-21) and a v2 floor on Pydantic; the resolved
 # uv.lock is the freeze-manifest artifact (D-5 / NFR-4).
 dependencies = [
-    "anthropic==0.105.2",
     "openai==2.40.0",
+    "google-generativeai>=0.7,<1",
     "pydantic>=2.9,<3",
     "duckdb>=1.1,<2",
     "numpy>=2.1,<3",

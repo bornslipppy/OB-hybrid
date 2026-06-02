@@ -3,14 +3,18 @@
 Two modes:
   SCRIPTED — Group A profiles: slot-keyed canned replies loaded from
              ``scripted_turns/group_a.yaml``. Deterministic; no LLM call.
-  LLM      — Group B/C profiles: OpenAI ``simulator_completion()``
-             (decorrelated from the Anthropic agent — FR-21).
+  LLM      — Group B/C profiles: Gemini ``simulator_completion()``
+             (decorrelated from the Cursor-API agent — FR-21).
 
 Fairness invariant (FR-19/FR-20):
   The ``UserSimulator`` constructor takes a ``RespondentSpec`` (facts + persona)
   **not** an answer key. The answer key is never passed to this module —
   verifiable from the call signature. ``reply()`` additionally asserts that no
   answer-key field is present in the spec it received.
+
+Provider:
+  LLM mode uses the ``gemini_client`` (a ``_GeminiLike`` callable factory from
+  ``kernel.llm``) which satisfies the FR-21 provider-decorrelation requirement.
 """
 
 from __future__ import annotations
@@ -72,7 +76,7 @@ class RespondentSpec:
 
 class SimulatorMode(str, Enum):
     SCRIPTED = "scripted"  # Group A — deterministic canned turns
-    LLM = "llm"  # Group B/C — OpenAI (decorrelated from Anthropic agent)
+    LLM = "llm"  # Group B/C — Gemini (decorrelated from Cursor-API agent)
 
 
 # ---------------------------------------------------------------------------
@@ -85,23 +89,25 @@ class UserSimulator:
 
     Args:
         spec:          The respondent spec (facts + persona, NO answer key).
-        openai_client: Required for LLM mode; ignored for scripted mode.
+        gemini_client: Required for LLM mode; a ``_GeminiLike`` callable factory
+                       ``(system_instruction) -> GenerativeModel``. Ignored for
+                       scripted mode.
         mode:          Override the auto-detected mode (useful in tests).
-        model:         OpenAI model name for LLM mode.
-        seed:          Best-effort seed for OpenAI reproducibility.
+        model:         Gemini model name for LLM mode.
+        seed:          Accepted for API compatibility; Gemini has no seed param.
     """
 
     def __init__(
         self,
         spec: RespondentSpec,
         *,
-        openai_client: Any | None = None,
+        gemini_client: Any | None = None,
         mode: SimulatorMode | None = None,
-        model: str = "gpt-4o",
+        model: str = "gemini-1.5-pro-002",
         seed: int | None = None,
     ) -> None:
         self._spec = spec
-        self._client = openai_client
+        self._client = gemini_client
         self._model = model
         self._seed = seed
         self._history: list[dict[str, str]] = []
@@ -113,9 +119,9 @@ class UserSimulator:
         else:
             self._mode = SimulatorMode.LLM
 
-        if self._mode is SimulatorMode.LLM and openai_client is None:
+        if self._mode is SimulatorMode.LLM and gemini_client is None:
             raise ValueError(
-                "UserSimulator in LLM mode requires an openai_client. "
+                "UserSimulator in LLM mode requires a gemini_client. "
                 "Pass one or override with mode=SimulatorMode.SCRIPTED for testing."
             )
 

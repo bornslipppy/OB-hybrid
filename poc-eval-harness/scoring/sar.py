@@ -356,6 +356,7 @@ def score_profile(
     *,
     schema_path: str | Path,
     system_id: str,
+    human_ratings: dict[str, int] | None = None,
 ) -> ProfileScore:
     """Score a completed system run against the answer key.
 
@@ -375,9 +376,16 @@ def score_profile(
         sections:    The sections to score (e.g. all H1 sections).
         schema_path: Path to the schema file (must match the frozen manifest).
         system_id:   "agent" | "tree" (recorded in the ProfileScore).
+        human_ratings:
+            Adjudicated free-text scores (slot_id -> 0/1) from the FR-35 blind-rater
+            protocol (``scoring.rater_queue``). When provided, a free-text slot's
+            provisional pass is replaced by its adjudicated score and the slot is
+            removed from ``human_rating_pending``. Slots absent here remain pending
+            (scored 1 provisionally) — never fabricated.
     Returns:
         A ``ProfileScore`` with SAR, slot-level scores, and human-rating flags.
     """
+    human_ratings = human_ratings or {}
     profile_facts = state.recorded_facts()
     in_scope = resolve_inscope_slots(profile_facts, sections, schema_path=schema_path)
     in_scope_ids = {r.slot_id: r for r in in_scope}
@@ -397,12 +405,18 @@ def score_profile(
         expected = denominator_answer_key[slot_id]
         resolved = in_scope_ids[slot_id]
         ss = score_slot(slot_id, resolved.section, expected, state)
+        if ss.requires_human_rating and slot_id in human_ratings:
+            # Adjudicated: replace the provisional pass with the rated score and
+            # treat the slot as resolved (no longer pending).
+            ss.score = int(human_ratings[slot_id])
+            ss.requires_human_rating = False
+            ss.reason = f"free-text adjudicated by blind raters → {ss.score}"
         slot_scores.append(ss)
         if ss.requires_human_rating:
             human_rating_pending.append(slot_id)
 
     numerator = sum(ss.score for ss in slot_scores if not ss.requires_human_rating)
-    # Human-rated slots contribute 1 (provisionally) until overridden.
+    # Still-pending human-rated slots contribute 1 (provisionally) until adjudicated.
     numerator += len(human_rating_pending)
     denominator = len(slot_scores)
     sar = numerator / denominator if denominator > 0 else 0.0

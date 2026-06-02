@@ -6,6 +6,8 @@ Validates three invariants at load time (hard failures):
   2. ``providers.agent.family != providers.simulator.family`` — same-family config
      aborts the run (D-3 / FR-21).
   3. ``run.k_runs >= 5`` — freeze discipline (FR-22).
+  4. Every provider model is a dated snapshot, never a ``-latest`` / floating alias
+     (R-7) — a moving model breaks run reproducibility and the freeze manifest.
 """
 
 from __future__ import annotations
@@ -81,6 +83,16 @@ def load_run_config(path: str | Path = "config/run_config.toml") -> RunConfig:
         raise ConfigError(
             f"run.k_runs must be >= 5 (FR-22 / FR-25); got {run['k_runs']!r}."
         )
+
+    # --- Invariant 4: dated model snapshots only — no floating alias (R-7) ---
+    for label, pc in (("agent", agent), ("simulator", simulator), ("extractor", extractor)):
+        model = pc.model.strip().lower()
+        if not model or "latest" in model or model.endswith("*"):
+            raise ConfigError(
+                f"providers.{label}.model must be a pinned dated snapshot, not a "
+                f"floating/-latest alias (R-7); got {pc.model!r}. A moving model breaks "
+                "run reproducibility and invalidates the freeze manifest."
+            )
 
     return RunConfig(
         project=data["experiment"]["project"],

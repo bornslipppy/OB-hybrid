@@ -196,12 +196,39 @@ def parse_tool_call(name: str, args: dict[str, Any]) -> BaseModel:
     return model.model_validate({**args, "tool": name})
 
 
+def to_openai_tools() -> list[dict[str, Any]]:
+    """Export the 7 tools as OpenAI function-calling tool definitions.
+
+    Each entry is ``{"type": "function", "function": {"name", "description", "parameters"}}``
+    where ``parameters`` is the model's JSON Schema with the internal ``tool`` discriminator
+    removed (the API supplies the name out-of-band via the function wrapper).
+    Used by the Cursor-API agent (scored_completion / glue_completion).
+    """
+    defs: list[dict[str, Any]] = []
+    for name, model in zip(TOOL_NAMES, TOOL_MODELS):
+        schema = model.model_json_schema()
+        schema.get("properties", {}).pop("tool", None)
+        if "required" in schema:
+            schema["required"] = [r for r in schema["required"] if r != "tool"]
+        defs.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": (model.__doc__ or "").strip().split("\n")[0],
+                    "parameters": schema,
+                },
+            }
+        )
+    return defs
+
+
 def to_anthropic_tools() -> list[dict[str, Any]]:
     """Export the 7 tools as Anthropic tool definitions.
 
+    Retained for interoperability. Prefer ``to_openai_tools()`` for the Cursor-API agent.
     Each entry is ``{"name", "description", "input_schema"}`` where ``input_schema``
-    is the model's JSON Schema with the internal ``tool`` discriminator removed
-    (the SDK supplies the name out-of-band).
+    is the model's JSON Schema with the internal ``tool`` discriminator removed.
     """
     defs: list[dict[str, Any]] = []
     for name, model in zip(TOOL_NAMES, TOOL_MODELS):
