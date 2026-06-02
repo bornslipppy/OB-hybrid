@@ -1,0 +1,64 @@
+{
+  "_comment": "C1 profile fixture — 4-owner fan-out (R-5 fixture spec from architecture §13). Tests that resolve_inscope_slots correctly computes each owner's in-scope economics sub-fields based on management_model.",
+  "profile_id": "C1",
+  "group": "C",
+  "facts": {
+    "listing_count": 12,
+    "channels": ["airbnb", "direct"],
+    "go_live": "2-4w",
+    "ownership_model": "all_managed_for_others",
+    "payment_timing": "at_booking",
+    "security_deposit_type": "damage_waiver",
+    "security_deposit_amount": 300,
+    "focus_topics": ["owner_reporting", "pricing_strategy"],
+    "pain": "Managing four very different commission structures"
+  },
+  "owners": [
+    {
+      "owner_id": "O1",
+      "owner_name": "Alice",
+      "management_model": "commission",
+      "pmc_commission_rate": 20.0,
+      "who_pays_channel_commission": "pmc"
+    },
+    {
+      "owner_id": "O2",
+      "owner_name": "Bob",
+      "management_model": "fixed_fee",
+      "fixed_fee_amount": 500.0,
+      "who_pays_channel_commission": "owner"
+    },
+    {
+      "owner_id": "O3",
+      "owner_name": "Carol",
+      "management_model": "revenue_split",
+      "split_terms": "70% after platform fees"
+    },
+    {
+      "owner_id": "O4",
+      "owner_name": "Dana",
+      "management_model": "other",
+      "split_terms": "Negotiated case-by-case"
+    }
+  ],
+  "answer_key": {
+    "listing_count": "recorded:12",
+    "channels": "recorded:[\"airbnb\",\"direct\"]",
+    "go_live": "recorded:2-4w",
+    "ownership_model": "recorded:all_managed_for_others",
+    "owners": "recorded:4_owners",
+    "payment_timing": "recorded:at_booking",
+    "security_deposit_type": "recorded:damage_waiver",
+    "security_deposit_amount": "recorded:300",
+    "focus_topics": "recorded:[\"owner_reporting\",\"pricing_strategy\"]",
+    "pain": "recorded:Managing four very different commission structures",
+    "revenue_recognition": "skipped",
+    "non_refundable_enabled": "skipped",
+    "mandatory_fees": "skipped",
+    "taxes": "flagged",
+    "website_brand_name": "conditional:surface_if_direct_signals_present",
+    "decision_owner": "recorded:just_me",
+    "cleaning_system": "recorded:in_house",
+    "payment_split": "skipped"
+  }
+}

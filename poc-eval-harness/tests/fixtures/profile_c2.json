@@ -1,0 +1,41 @@
+{
+  "_comment": "C2 profile fixture — ownership_model flip cascade (R-5/R-6 fixture spec). Tests that when ownership_model changes from 'all_managed_for_others' to 'all_self_owned', the entire owners branch collapses out of the in-scope slot set — the key cascade scenario.",
+  "profile_id": "C2",
+  "group": "C",
+  "facts_managed": {
+    "listing_count": 5,
+    "channels": ["airbnb", "booking"],
+    "go_live": "asap",
+    "ownership_model": "all_managed_for_others",
+    "focus_topics": ["channel_mix"]
+  },
+  "facts_self_owned": {
+    "listing_count": 5,
+    "channels": ["airbnb", "booking"],
+    "go_live": "asap",
+    "ownership_model": "all_self_owned",
+    "focus_topics": ["channel_mix"]
+  },
+  "answer_key_managed": {
+    "listing_count": "recorded:5",
+    "channels": "recorded:[\"airbnb\",\"booking\"]",
+    "go_live": "recorded:asap",
+    "ownership_model": "recorded:all_managed_for_others",
+    "owners": "recorded:expected_owners",
+    "focus_topics": "recorded:[\"channel_mix\"]",
+    "taxes": "flagged",
+    "payment_timing": "recorded:at_booking",
+    "decision_owner": "recorded:just_me"
+  },
+  "answer_key_self_owned": {
+    "listing_count": "recorded:5",
+    "channels": "recorded:[\"airbnb\",\"booking\"]",
+    "go_live": "recorded:asap",
+    "ownership_model": "recorded:all_self_owned",
+    "focus_topics": "recorded:[\"channel_mix\"]",
+    "taxes": "flagged",
+    "payment_timing": "recorded:at_booking",
+    "decision_owner": "recorded:just_me"
+  },
+  "_cascade_note": "When ownership_model flips to all_self_owned: 'owners' slot must NOT appear in the in-scope set. Its depends_on guard ('ownership_model in [all_managed_for_others, mixed]') is not satisfied. 'owners_csv' likewise must collapse. Any child slots that depend on 'owners is recorded' must also collapse. This is the cascade that R-5/R-6 requires the resolver to handle correctly — the SAR denominator must shrink accordingly."
+}
