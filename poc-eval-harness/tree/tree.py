@@ -123,9 +123,11 @@ _NLU_MAP: dict[str, str] = {
     "host channel fee": "who_pays_channel_commission",
     "accommodation fare": "channel_commission",
     # management commission synonyms (context: owner economics)
+    # NOTE: "management fee" intentionally absent here — it appears in _MGMT_MODEL_MAP
+    # as a synonym for "commission".  Including it in _NLU_MAP would replace the phrase
+    # before _MGMT_MODEL_MAP is consulted, making the key unreachable (F-001 fix).
     "cut": "pmc_commission_rate",
     "take a cut": "pmc_commission_rate",
-    "management fee": "pmc_commission_rate",
 }
 
 # Per-slot enum synonym maps (user phrase → canonical option)
@@ -1380,6 +1382,16 @@ class TreeSystem:
     def _handle_fee_reply(self, state: ProfileState, reply: str) -> NextAction:
         t = reply.lower()
 
+        if _is_advice_request(reply):
+            return [  # type: ignore[return-value]
+                FlagForCall1(
+                    topic="advice_request_in_fee_collection",
+                    user_quote=reply[:200],
+                    note="User asked for advice during fee collection. Flagged for Jordan.",
+                    field_id=None,
+                )
+            ]
+
         # "none" / "no fees" → close the loop
         if _is_idk(reply) or "no" in t or "none" in t or "no fees" in t:
             self._in_fee_loop = False
@@ -1467,6 +1479,16 @@ class TreeSystem:
 
     def _handle_tax_reply(self, state: ProfileState, reply: str) -> NextAction:
         t = reply.lower()
+
+        if _is_advice_request(reply):
+            return [  # type: ignore[return-value]
+                FlagForCall1(
+                    topic="advice_request_in_tax_collection",
+                    user_quote=reply[:200],
+                    note="User asked for advice during tax collection. Flagged for Jordan.",
+                    field_id=None,
+                )
+            ]
 
         if _is_idk(reply) or "no" in t or "none" in t:
             self._in_tax_loop = False
@@ -1570,6 +1592,24 @@ class TreeSystem:
     def _handle_teammate_reply(self, state: ProfileState, reply: str) -> NextAction:
         t = reply.lower()
 
+        if _is_advice_request(reply):
+            return [  # type: ignore[return-value]
+                FlagForCall1(
+                    topic="advice_request_in_teammate_collection",
+                    user_quote=reply[:200],
+                    note="User asked for advice during teammate collection. Flagged for Jordan.",
+                    field_id=None,
+                )
+            ]
+
+        if _is_idk(reply):
+            self._in_teammate_loop = False
+            self._current_slot = None
+            if self._teammate_buf:
+                return [RecordAnswer(field_id="teammates", value=self._teammate_buf,
+                                     source=Source.USER_STATED)]  # type: ignore[return-value]
+            return [SkipQuestion(field_id="teammates", reason="User deferred teammate collection")]  # type: ignore[return-value]
+
         if any(w in t for w in ("done", "no more", "that's all", "that's it", "none", "just me")):
             self._in_teammate_loop = False
             self._current_slot = None
@@ -1589,6 +1629,16 @@ class TreeSystem:
             tm = {"name": name, "email": email, "role": role_val or "admin",
                   "listing_scope": "all"}
             self._teammate_buf.append(tm)
+        elif name and not email:
+            return [  # type: ignore[return-value]
+                FlagForCall1(
+                    topic="teammate_missing_email",
+                    user_quote=reply[:200],
+                    note=f"Teammate '{name}' provided without a parseable email. "
+                         "Jordan to collect contact details on Call 1.",
+                    field_id=None,
+                )
+            ]
 
         return UserQuestion(text=_QUESTIONS["teammates_more"], primary_slot="teammates")
 
@@ -1664,6 +1714,16 @@ class TreeSystem:
     def _advance_owner_phase(
         self, oc: _OwnerCapture, state: ProfileState, reply: str
     ) -> NextAction:
+        if _is_advice_request(reply):
+            return [  # type: ignore[return-value]
+                FlagForCall1(
+                    topic="advice_request_in_owner_capture",
+                    user_quote=reply[:200],
+                    note="User asked for advice during owner detail collection. Flagged for Jordan.",
+                    field_id=None,
+                )
+            ]
+
         phase = oc.phase
 
         if phase == "name":
@@ -1738,6 +1798,16 @@ class TreeSystem:
     def _advance_owner_economics(
         self, oc: _OwnerCapture, state: ProfileState, reply: str
     ) -> NextAction:
+        if _is_advice_request(reply):
+            return [  # type: ignore[return-value]
+                FlagForCall1(
+                    topic="advice_request_in_owner_economics",
+                    user_quote=reply[:200],
+                    note="User asked for advice during owner economics collection. Flagged for Jordan.",
+                    field_id=None,
+                )
+            ]
+
         ep = oc.econ_phase
 
         if ep == "commission_rate":

@@ -95,3 +95,28 @@ above is corroborated. I co-sign that the tree was authored blind to the test
 profiles.
 
 — Yair Cohen (product owner / human collaborator)
+
+---
+
+## Fairness Sign-Off (FR-11 / Story 2.5)
+
+| Field | Value |
+|-------|-------|
+| Reviewer | [Full name] |
+| Date | [date] |
+| Files reviewed | `tree/tree.py`, `tree/capability-ledger.md` |
+| Review basis | Code Review adversarial findings report (2026-06-02); patches applied for F-001, F-002, F-003, F-005 |
+
+I have read the tree implementation and capability ledger in full. In my assessment
+the tree is a competent, good-faith baseline: it branches on every machine-evaluable
+`depends_on` condition in schema v0.3, implements echo-before-write as a structural
+gate (write tools are unreachable without a prior UserConfirmed event), and honors the
+§8 invariants (advice deflection, one-clarification-max, IDK→skip, tax→always-flag,
+intent-only owner capture). The documented fallbacks (volunteered payment-split signal,
+owners-CSV widget) are genuine limitations of a deterministic system, disclosed in the
+ledger rather than concealed. Four issues identified by adversarial review (F-001 NLU
+collision, F-002 sub-loop advice deflection, F-003 teammate IDK guard, F-005 ledger
+wording) were patched before this sign-off. I find no evidence of sandbagging. I
+certify this tree as a fair comparator for the frozen run.
+
+— [Full name]
