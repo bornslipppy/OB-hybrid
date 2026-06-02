@@ -1,0 +1,85 @@
+# Slot-keyed scripted canned replies for Group A profiles (Story 4.1/4.2).
+#
+# These are deterministic answers to questions about Group A slots — selected
+# by primary_slot (the slot the system is currently asking about), not by
+# sequence position. This lets the simulator answer the agent's adaptive
+# question regardless of what order it asks.
+#
+# Design rules (FR-19/EC-27, architecture §11):
+#   - Each key is a slot_id from the schema.
+#   - Values are natural-language replies that convey the A1/A2 ground-truth
+#     fact in plain speech (as a real user would say it).
+#   - If the system asks about a slot not in this map, the simulator falls
+#     through to the "unknown_slot" fallback reply.
+#   - "A1" and "A2" variants are provided for slots where A1 and A2 differ;
+#     the simulator selects the correct variant from RespondentSpec.facts.
+#   - Replies contain NO answer-key dispositions — only facts.
+#
+# Source: A1 = Harbor Point Rentals (Sarasota FL, 5 self-owned).
+#         A2 = Sunrise Valley Vacations (2 owners, flat-fee).
+
+# S2 — Channels / listing count
+listing_count: "I have 5 listings."
+channels: "We're on Airbnb, VRBO, and we also take direct bookings through our own website."
+go_live: "As soon as possible — ideally within the next two weeks."
+other_channels_text: ~ # not applicable for A1/A2
+
+# S3 — Operations
+cleaning_system: "I work with an external cleaning team. They take care of all the turnovers."
+turnover_checklist_choice: "I don't have a digital checklist — we do it verbally."
+smart_locks: "Yes, we use smart locks on all the properties."
+
+# S4 — Financials
+revenue_recognition: "We recognize revenue at check-in."
+non_refundable_enabled: "No, we don't offer non-refundable rates."
+security_deposit_type: "We collect a $50 damage waiver — it's not a traditional deposit."
+security_deposit_amount: "Fifty dollars."
+payment_timing: "Full payment at booking."
+payment_split: ~ # not applicable — at_booking
+mandatory_fees: "We charge an $85 cleaning fee per stay."
+taxes: "Florida state sales tax at 6% plus the Sarasota county tourist development tax, which is 2%."
+
+# S5 — Website (surfaces for A1 only, not A2)
+website_brand_name: "Harbor Point Stays."
+website_domain: "I'd like a Guesty subdomain — something like harborpointstays.guesty.com."
+website_terms: "The standard terms are fine."
+
+# S6 — Governance
+decision_owner: "Just me. I'm the only one making decisions."
+teammates: ~ # not applicable — solo
+
+# S7 — Focus & pain
+focus_topics: "Pricing strategy and guest messaging are my main focus areas."
+pain: >
+  Manual pricing takes too much time. I'm adjusting rates by hand every morning
+  and it's getting out of control.
+
+# S8 — Ownership model
+ownership_model: "I own all the properties myself — no managed properties for other owners."
+owners: ~ # not applicable — all_self_owned
+owners_csv: ~ # not applicable — all_self_owned
+rate_strategy: "Dynamic pricing — we use market-based pricing and adjust seasonally."
+
+# Fallback for unknown / composite slots
+unknown_slot: "I'm not sure exactly what you're asking. Can you rephrase?"
+open_ended: "That covers everything I can think of on my end. What else do you need?"
+
+# --- A2 overrides (Sunrise Valley Vacations — 2 owners, flat fee) ---
+# These are loaded when profile_group == "A2". The simulator picks the right
+# variant at reply time by checking RespondentSpec.variant_overrides.
+a2_overrides:
+  listing_count: "Eight listings across two properties."
+  channels: "Airbnb and direct bookings — we don't use VRBO."
+  ownership_model: "I manage properties for two other owners as well as my own."
+  owners: >
+    Sure. There's Alice — she owns three of the properties, we have a flat fee
+    arrangement, I charge $500 a month per property. And there's Bob — he owns
+    two, same deal, $500 each.
+  owners_csv: "Alice Smith: 3 properties, $500/month flat fee. Bob Jones: 2 properties, $500/month flat fee."
+  payment_timing: "We split the payment — half upfront, half the day before check-in."
+  payment_split: "Fifty-fifty. Half at booking, half before arrival."
+  website_brand_name: ~ # A2 has no direct bookings signal
+  website_domain: ~
+  website_terms: ~
+  taxes: "We're in Tennessee — state sales tax at 7%, no local tourist tax."
+  mandatory_fees: "Cleaning fee $75 for smaller units, $100 for the larger ones."
