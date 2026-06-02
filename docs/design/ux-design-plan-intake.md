@@ -1,3 +1,7 @@
+---
+title: "Intake UX Design Plan"
+---
+
 # Intake UX Design Plan
 
 **Version:** 2.0  

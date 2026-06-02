@@ -1,3 +1,7 @@
+---
+title: "Multi-Agent Orchestra Architecture"
+---
+
 # Multi-Agent Orchestra Architecture
 ## Integrating Intelligent Routing, Explainable Scoring, and Adaptive Tables into Agentic AI Platform
 

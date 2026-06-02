@@ -1,3 +1,7 @@
+---
+title: "PRD: Guesty Pro Onboarding Wizard — Prototype"
+---
+
 # PRD: Guesty Pro Onboarding Wizard — Prototype
 
 **Status:** Draft  

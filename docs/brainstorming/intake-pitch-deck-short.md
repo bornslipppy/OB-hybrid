@@ -1,3 +1,7 @@
+---
+title: "Intake: Product Reasoning Infrastructure"
+---
+
 # Intake: Product Reasoning Infrastructure
 **From Scattered Signals to Executable Specs in 90 Seconds**
 

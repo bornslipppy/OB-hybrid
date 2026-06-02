@@ -1,3 +1,7 @@
+---
+title: "Hero Component: Detailed Design Analysis"
+---
+
 # Hero Component: Detailed Design Analysis
 ## Three Integrated Solutions for Security Incident Management
 

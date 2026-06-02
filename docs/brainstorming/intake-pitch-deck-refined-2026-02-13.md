@@ -1,3 +1,7 @@
+---
+title: "Intake: Product Reasoning Infrastructure"
+---
+
 # Intake: Product Reasoning Infrastructure
 **The Context Layer Between Scattered Signals and AI Execution**
 

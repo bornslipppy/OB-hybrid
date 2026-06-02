@@ -1,15 +1,11 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-inputDocuments:
-  - 'docs/planning-artifacts/product-brief-Guesty-Pro-Onboarding-Wizard-2026-05-03.md'
-  - 'docs/planning-artifacts/prd-guesty-pro-onboarding-wizard-2026-05-03.md'
-  - '/Users/yair.cohen/Documents/GitHub/atlas-design-copilot/knowledge/ux-guidelines/ (folder, 41 files — distilled)'
-  - '/Users/yair.cohen/Documents/GitHub/atlas-design-copilot/knowledge/personas/ (folder, 3 files — distilled)'
-  - '/Users/yair.cohen/Documents/GitHub/atlas-design-copilot/knowledge/product-model/ (folder, 3 files — distilled)'
+
+title: "UX Design Specification — Guesty Pro Onboarding Wizard"
+
 project_name: 'Guesty Pro Onboarding Wizard'
-author: 'Yair Cohen'
+
 date: '2026-05-03'
-lastUpdated: '2026-05-03'
+lastUpdated: 2026-05-03
 ---
 
 # UX Design Specification — Guesty Pro Onboarding Wizard

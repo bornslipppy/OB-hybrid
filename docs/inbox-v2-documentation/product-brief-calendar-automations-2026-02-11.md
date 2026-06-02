@@ -1,4 +1,6 @@
 ---
+title: "Product Brief: Calendar-Based Automations for Inbox v2"
+
 stepsCompleted: [1, 2]
 inputDocuments:
   - docs/inbox-v2-documentation/research-synthesis-2026-02-11.md

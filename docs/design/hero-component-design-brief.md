@@ -1,3 +1,7 @@
+---
+title: "Design Brief: Incident Command Center Hero Component"
+---
+
 # Design Brief: Incident Command Center Hero Component
 ## High-Fidelity Mockup Specifications
 

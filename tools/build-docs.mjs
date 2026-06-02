@@ -39,6 +39,8 @@ const LLM_EXCLUDE_PATTERNS = [
   'reference/glossary/',
   'explanation/game-dev/',
   'bmgd/',
+  'planning-artifacts/', // project-specific planning docs — not framework reference
+  'inbox-v2-documentation/', // project-specific brownfield docs — not framework reference
   // Note: Files/dirs starting with _ (like _STYLE_GUIDE.md, _archive/) are excluded in shouldExcludeFromLlm()
 ];
 

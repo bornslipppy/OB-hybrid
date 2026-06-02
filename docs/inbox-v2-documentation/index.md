@@ -1,3 +1,7 @@
+---
+title: "Inbox v2 - Project Documentation Index"
+---
+
 # Inbox v2 - Project Documentation Index
 
 **Documentation Generated:** 2026-02-11  
@@ -39,18 +43,18 @@
 - [📄 Project Overview](./project-overview.md) - Complete architecture and feature breakdown
 
 ### Documents To Be Generated
-- [🏗️ Architecture Deep Dive](./architecture.md) _(To be generated)_
-- [🧩 Component Inventory](./component-inventory.md) _(To be generated)_
-- [🌳 Source Tree Analysis](./source-tree-analysis.md) _(To be generated)_
-- [🔧 Development Guide](./development-guide.md) _(To be generated)_
-- [📡 API Integration Map](./api-integration-map.md) _(To be generated)_
-- [🎨 UI/UX Patterns](./ui-ux-patterns.md) _(To be generated)_
+- 🏗️ Architecture Deep Dive _(to be generated)_
+- 🧩 Component Inventory _(to be generated)_
+- 🌳 Source Tree Analysis _(to be generated)_
+- 🔧 Development Guide _(to be generated)_
+- 📡 API Integration Map _(to be generated)_
+- 🎨 UI/UX Patterns _(to be generated)_
 
 ---
 
 ## Existing Documentation Found
 
-- [README.md](../../inbox-v2/README.md) - Create React App standard documentation (121KB)
+- README.md — Create React App standard documentation (121KB, in inbox-v2 repo)
 
 ---
 

@@ -1,12 +1,10 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5]
-inputDocuments:
-  - 'docs/brainstorming/brainstorming-session-2026-02-11.md'
-  - 'docs/brainstorming/intake-pitch-deck-refined-2026-02-13.md'
-  - 'docs/research/market-pm-tools-competitive-landscape-2026-02-12.md'
+
+title: "Product Brief: Intake"
+
 date: '2026-02-13'
-author: 'Yair Cohen'
-lastUpdated: '2026-02-13'
+
+lastUpdated: 2026-02-13
 ---
 
 # Product Brief: Intake

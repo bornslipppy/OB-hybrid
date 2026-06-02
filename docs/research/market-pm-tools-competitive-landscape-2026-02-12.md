@@ -1,4 +1,6 @@
 ---
+title: "Market Research: Product Management Tools - Competitive Landscape"
+
 stepsCompleted: []
 inputDocuments: []
 workflowType: 'research'

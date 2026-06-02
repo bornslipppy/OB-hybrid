@@ -1,3 +1,7 @@
+---
+title: "Nebula/Guesty Design System Component Inventory for Calendar-Based Automations"
+---
+
 # Nebula/Guesty Design System Component Inventory for Calendar-Based Automations
 
 **Date:** 2026-02-11  

@@ -1,3 +1,7 @@
+---
+title: "Intake Figma Quick Checklist"
+---
+
 # Intake Figma Quick Checklist
 
 **Use this as your build checklist. Check off items as you complete them.**

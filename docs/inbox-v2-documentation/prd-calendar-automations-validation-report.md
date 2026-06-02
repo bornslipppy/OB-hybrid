@@ -1,4 +1,6 @@
 ---
+title: "PRD Validation Report - Calendar-Based Automations"
+
 validationTarget: '/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/docs/inbox-v2-documentation/prd-calendar-automations.md'
 validationDate: '2026-02-11'
 inputDocuments:

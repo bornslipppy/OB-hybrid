@@ -1,3 +1,7 @@
+---
+title: "Intake Figma Setup Guide"
+---
+
 # Intake Figma Setup Guide
 
 **Version:** 1.0  

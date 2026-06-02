@@ -1,3 +1,7 @@
+---
+title: "Inbox v2 - Project Overview"
+---
+
 # Inbox v2 - Project Overview
 
 **Scan Type:** Quick Scan (Pattern-Based)  

@@ -1,3 +1,7 @@
+---
+title: "Intake Figma Dimensions Reference"
+---
+
 # Intake Figma Dimensions Reference
 
 **Quick copy-paste specs for building in Figma**

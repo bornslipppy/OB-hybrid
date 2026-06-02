@@ -1,3 +1,7 @@
+---
+title: "Hero UI Component Analysis"
+---
+
 # Hero UI Component Analysis
 ## Mapping Component Options to User Pain Points
 

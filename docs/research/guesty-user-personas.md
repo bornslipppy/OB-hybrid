@@ -1,3 +1,7 @@
+---
+title: "Guesty User Personas"
+---
+
 # Guesty User Personas
 
 > Consolidated persona profiles synthesized from 100 individual user research files. Each archetype represents a cluster of users who share similar roles, responsibilities, organizational contexts, and interaction patterns with the Guesty platform.

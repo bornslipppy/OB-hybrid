@@ -1,3 +1,7 @@
+---
+title: "Intake Figma Content Library"
+---
+
 # Intake Figma Content Library
 
 **Copy-paste realistic content for your mockup screens**

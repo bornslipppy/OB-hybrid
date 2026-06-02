@@ -1,9 +1,10 @@
 ---
-stepsCompleted: [1, 2, 3]
-inputDocuments: []
+
+title: "Product Brief: Intakes"
+
 date: '2026-03-06'
-author: 'Yair Cohen'
-lastUpdated: '2026-03-06'
+
+lastUpdated: 2026-03-06
 ---
 
 # Product Brief: Intakes

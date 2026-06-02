@@ -1,3 +1,7 @@
+---
+title: "UX Design Plan Changelog"
+---
+
 # UX Design Plan Changelog
 
 **Date:** February 13, 2026  

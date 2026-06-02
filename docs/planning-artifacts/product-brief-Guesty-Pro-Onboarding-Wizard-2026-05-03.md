@@ -1,40 +1,10 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5]
-inputDocuments:
-  - '/Users/yair.cohen/Downloads/Draft Brief (2).md'
-  - '/Users/yair.cohen/Downloads/Feedback Document.md'
-  - '/Users/yair.cohen/Downloads/prototyping v2 (4).html'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/personas/guesty-user-personas.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/personas/persona-evaluation-rules.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/product-model/cross-domain-pain-points.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/product-model/reservation-lifecycle-map.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/domains/d1-financials.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/domains/d2-operations.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/domains/d5-distribution.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/domains/d6-global-platform.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/guesty-ux-principles.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/guesty-ux-governance.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/design-guidelines.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/empty-state.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/skeleton.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/progress-bar.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/dialog.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/drawer.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/tooltip.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/form.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/card.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/toast.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/accordion.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/breadcrumb.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/tabs.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/button.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/link.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/input.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/combobox.md'
-  - '/Users/yair.cohen/Documents/GitHub/Tahini/knowledge/ux-guidelines/components/select.md'
+
+title: "Product Brief: Guesty Pro Onboarding Wizard"
+
 date: '2026-05-03'
-author: 'Yair Cohen'
-lastUpdated: '2026-05-04'
+
+lastUpdated: 2026-05-04
 ---
 
 # Product Brief: Guesty Pro Onboarding Wizard

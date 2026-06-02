@@ -1,3 +1,7 @@
+---
+title: "Pitch Deck Update Summary - February 13, 2026"
+---
+
 # Pitch Deck Update Summary - February 13, 2026
 
 ## Overview

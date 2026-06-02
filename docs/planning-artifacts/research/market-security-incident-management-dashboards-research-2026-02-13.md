@@ -1,4 +1,6 @@
 ---
+title: "Market Research: Security Incident Management Dashboards"
+
 stepsCompleted: [1, 2, 3, 4, 5]
 inputDocuments: []
 workflowType: 'research'

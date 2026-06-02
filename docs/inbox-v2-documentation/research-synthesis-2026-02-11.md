@@ -1,3 +1,7 @@
+---
+title: "Inbox v2 - Research Synthesis & Product Recommendations"
+---
+
 # Inbox v2 - Research Synthesis & Product Recommendations
 
 **Research Date:** February 11, 2026  

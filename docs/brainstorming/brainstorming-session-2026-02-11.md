@@ -1,4 +1,6 @@
 ---
+title: "Brainstorming Session: Product OS (Wozy) - Cursor for Product Managers"
+
 stepsCompleted: [1, 2]
 inputDocuments: []
 session_topic: 'Product OS (Wozy) - Cursor for Product Managers'
