@@ -102,8 +102,8 @@ profiles.
 
 | Field | Value |
 |-------|-------|
-| Reviewer | [Full name] |
-| Date | [date] |
+| Reviewer | Yair Cohen |
+| Date | 2026-06-02 |
 | Files reviewed | `tree/tree.py`, `tree/capability-ledger.md` |
 | Review basis | Code Review adversarial findings report (2026-06-02); patches applied for F-001, F-002, F-003, F-005 |
 
@@ -119,4 +119,4 @@ collision, F-002 sub-loop advice deflection, F-003 teammate IDK guard, F-005 led
 wording) were patched before this sign-off. I find no evidence of sandbagging. I
 certify this tree as a fair comparator for the frozen run.
 
-— [Full name]
+— Yair Cohen (product owner)
