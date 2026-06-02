@@ -16,7 +16,9 @@ profiles/raw/
 *.handover_raw.*
 
 # Campaign run outputs (large, retained per directory, not in git).
+# Exception: the proto-manifest is a tracked freeze artifact.
 campaigns/
+!campaigns/proto-manifest.json
 
 # Secrets / API keys
 .env.local
