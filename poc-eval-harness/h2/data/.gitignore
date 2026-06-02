@@ -1,0 +1,5 @@
+# Raw (PII-bearing) notes must NEVER reach the repo (D-8 / NFR-3).
+raw/
+*.pii
+*.raw
+*.handover_raw.*

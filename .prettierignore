@@ -10,3 +10,9 @@ _bmad*/
 
 # IDE integration folders (user-specific, not in repo)
 .junie/
+
+# PoC harness — Python virtualenv (machine-generated, never formatted)
+poc-eval-harness/.venv/
+
+# Guesty working documents (pre-existing, not framework artifacts)
+docs/inbox-v2-documentation/

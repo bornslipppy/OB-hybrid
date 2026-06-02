@@ -15,6 +15,11 @@ ignores:
   - sample-project/**
   - test-project-install/**
   - z*/**
+  - docs/planning-artifacts/**
+  - docs/design/**
+  - docs/inbox-v2-documentation/**
+  - website/src/content/docs/**
+  - poc-eval-harness/**
 
 # Rule configuration
 config:

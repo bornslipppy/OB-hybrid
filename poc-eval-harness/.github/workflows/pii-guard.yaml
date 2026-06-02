@@ -1,0 +1,47 @@
+name: PII commit guard
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Architecture D-8 / NFR-3: blocks any commit that touches raw note paths or
+# matches PII filename patterns. This guard is active before any Epic 5 (Story 5.1)
+# note-pull work begins — it is a prerequisite, not a nicety.
+jobs:
+  pii-guard:
+    name: Block PII paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for committed PII patterns
+        shell: bash
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only $(git hash-object -t tree /dev/null) HEAD)
+          BLOCKED=0
+
+          for f in $CHANGED; do
+            # Blocked path prefixes (raw note directories).
+            if [[ "$f" == h2/data/raw/* || "$f" == profiles/raw/* ]]; then
+              echo "❌  PII GUARD: blocked path committed: $f"
+              BLOCKED=1
+            fi
+            # Blocked filename patterns.
+            if [[ "$f" == *.pii || "$f" == *.handover_raw.* || "$f" == *.handover.txt ]]; then
+              echo "❌  PII GUARD: blocked filename pattern: $f"
+              BLOCKED=1
+            fi
+          done
+
+          if [[ $BLOCKED -eq 1 ]]; then
+            echo ""
+            echo "Raw (PII-bearing) handover notes must NEVER be committed to the repo"
+            echo "(architecture D-8 / NFR-3). De-identify before any LLM or human touch."
+            echo "See poc-eval-harness/.gitignore for the authoritative blocked patterns."
+            exit 1
+          fi
+          echo "✅  PII guard: no blocked paths found."

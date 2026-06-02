@@ -1,0 +1,30 @@
+# Python / uv
+__pycache__/
+*.pyc
+*.pyo
+.python-version   # uv python pin
+.venv/
+.env
+
+# Raw handover notes — NEVER committed (D-8 / NFR-3).
+# Raw notes live outside the repo under access control (architecture §8).
+h2/data/raw/
+h2/data/*.pii
+h2/data/*.raw
+profiles/raw/
+*.handover.txt
+*.handover_raw.*
+
+# Campaign run outputs (large, retained per directory, not in git).
+campaigns/
+
+# Secrets / API keys
+.env.local
+.env.*.local
+secrets/
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp

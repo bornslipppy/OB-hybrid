@@ -1,0 +1,60 @@
+# poc-eval-harness run configuration
+# Validated on startup by config_loader.py (Story 0.2).
+# This file is part of the freeze manifest (D-5 / NFR-4).
+
+[experiment]
+project = "AI Adaptive Onboarding PoC"
+version = "0.1.0"
+
+# --- Providers ---------------------------------------------------------------
+# D-3 / FR-21: agent and simulator MUST be different provider families.
+# Config-validated at startup; a same-family config aborts the run.
+[providers.agent]
+family   = "anthropic"
+# Pin a dated model snapshot — NEVER a -latest alias (R-7).
+# Placeholder: replace with the ratified snapshot before a frozen run.
+model    = "claude-opus-4-6"
+
+[providers.simulator]
+family   = "openai"
+model    = "gpt-4.1-2025-04-14"
+
+[providers.extractor]
+# H2 extractor shares the same provider family as the agent (Anthropic).
+family   = "anthropic"
+model    = "claude-opus-4-6"
+
+# --- Temperature policy ------------------------------------------------------
+# D-2 / FR-6: temperature is a call-type, not an argument. These values are
+# read-only reference constants for logging/auditing; they are NOT passed as
+# arguments. The llm.py functions hard-code them structurally.
+[temperatures]
+scored    = 0.0   # every tool-emitting turn (scored slots)
+glue      = 0.2   # unscored conversational transitions only (no tool calls)
+simulator = 0.0   # decorrelation comes from provider family, not temperature
+
+# --- Run settings ------------------------------------------------------------
+[run]
+# FR-22 / FR-25: k ≥ 5 frozen runs per profile per system.
+k_runs = 5
+# Seed strategy: seeds are best-effort (OpenAI only; Anthropic exposes none — R-2).
+# Fixed seeds reduce variance where supported; real reproducibility = frozen inputs.
+seed_base   = 42     # run_index N → seed = seed_base + N
+# FR-8 invariant 7: conversation turn cap (user-facing turns).
+max_turns   = 60
+
+# --- Freeze manifest ---------------------------------------------------------
+[freeze]
+manifest_path       = "campaigns/manifest.json"
+# Re-freeze counter persists here; capped at 2 (FR-26).
+refreeze_count_path = "campaigns/refreeze_count.json"
+
+# --- Profile paths -----------------------------------------------------------
+[profiles]
+dev_dir    = "profiles/dev"
+scored_dir = "profiles/scored"
+# The --frozen run flag restricts to the scored set (§5.4).
+
+# --- Schema ------------------------------------------------------------------
+[schema]
+path = "schema/guesty-pro-account-creation-schema.md"
