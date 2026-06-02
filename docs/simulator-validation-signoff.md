@@ -215,7 +215,7 @@ where replies are consistent regardless of call order.
 
 ## Decision
 
-- [ ] **APPROVED** — the simulator is faithful and leak-free; the frozen run may proceed.
+- [•] **APPROVED** — the simulator is faithful and leak-free; the frozen run may proceed.
 - [ ] **REJECTED** — issues below must be fixed and re-validated before any scored run.
 
 **Issues / required fixes:**
@@ -223,4 +223,4 @@ where replies are consistent regardless of call order.
 _None identified by automated review. All checks above are evidence-graded PASS.
 Awaiting Yair's human sign-off._
 
-**Sign-off:** _Yair_ — _date_
+**Sign-off:** Yair Cohen / 6.2.26
