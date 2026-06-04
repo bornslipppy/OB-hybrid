@@ -1,0 +1,52 @@
+{
+  "_comment": "SCORED profile B3 — Group B vocabulary mismatch (NLU normalization). Same underlying business as A2 (Coastal Keys Management) told entirely in layperson Airbnb vocabulary. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group B / B3.",
+  "profile_id": "B3",
+  "group": "B",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Coastal Keys Management",
+    "channels": ["airbnb", "booking"],
+    "channels_user_words": "I'm on Airbnb and Booking",
+    "mandatory_fees": [{ "fee_type": "cleaning_fee", "amount": 85 }],
+    "mandatory_fees_user_words": "cleaning fee of $85",
+    "revenue_recognition": "checkout_date",
+    "revenue_recognition_user_words": "I get paid when they leave",
+    "payment_timing": "at_booking",
+    "payment_timing_user_words": "they pay up front when they book",
+    "taxes": [{ "tax_type": "sales_tax", "rate": 6, "jurisdiction": "state" }],
+    "taxes_user_words": "the state takes 6%",
+    "non_refundable_enabled": false,
+    "non_refundable_user_words": "I don't do the non-refundable thing",
+    "security_deposit_type": "damage_protection",
+    "security_deposit_user_words": "I use that damage coverage thing from Airbnb",
+    "ownership_model": "mixed",
+    "owners": [
+      {
+        "owner_name": "Maria Chen",
+        "email": "maria@chen-properties.com",
+        "listings": 2,
+        "management_model": "flat_fee",
+        "fixed_fee_amount": 200
+      },
+      { "owner_name": "Tom Walsh", "email": "tomw@walsh.net", "listings": 1, "management_model": "flat_fee", "fixed_fee_amount": 150 }
+    ],
+    "focus_topics": ["owner_reporting"],
+    "focus_topics_user_words": "keeping owners in the loop / making sure my owners see their statements",
+    "pain": "My owners always ask me for their money breakdown and I do it by hand"
+  },
+  "persona": "Friendly, casual, uses Airbnb-ecosystem vocabulary throughout. Says 'portals' not 'channels.' Says 'cleaning fee' not 'additional fee.' Says 'they pay when they book' not 'at_booking.' Says 'statements' for owner payouts. Says 'that damage coverage' for damage_protection. If the agent uses Guesty jargon without explanation, asks 'what does that mean?' — agent must rephrase, not repeat the jargon.",
+  "answer_key": {
+    "channels": "recorded:[\"airbnb\",\"booking\"]",
+    "mandatory_fees": "recorded:cleaning_fee 85",
+    "revenue_recognition": "recorded:checkout_date",
+    "payment_timing": "recorded:at_booking",
+    "taxes": "flagged",
+    "non_refundable_enabled": "recorded:false",
+    "security_deposit_type": "recorded:damage_protection",
+    "focus_topics": "recorded:[\"owner_reporting\"]",
+    "pain": "recorded:My owners always ask me for their money breakdown and I do it by hand",
+    "ownership_model": "recorded:mixed",
+    "owners": "recorded:2_owners"
+  },
+  "_note": "S5 NOT surfaced (no direct channel). TEST IS NLU, NOT VALUES: agent must map non-canonical vocabulary to the same slot values as A2 despite layperson phrasing, and rephrase jargon when asked. ownership_model recorded:mixed carried from A2 (Appendix C: 'mixed/managed'); owner facts carried from A2 ('same underlying business as A2'). Spec answer key derived from the B3 business-reality↔user-words mapping table."
+}

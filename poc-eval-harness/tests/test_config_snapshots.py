@@ -20,7 +20,7 @@ def test_real_config_loads_and_pins_dated_snapshots():
 
 @pytest.mark.parametrize("bad", ["claude-latest", "claude-opus-latest", "gpt-4o-LATEST", "model-*"])
 def test_latest_alias_is_rejected(tmp_path, bad):
-    text = _CONFIG.read_text(encoding="utf-8").replace('model    = "claude-opus-4-6"', f'model    = "{bad}"', 1)
+    text = _CONFIG.read_text(encoding="utf-8").replace('model    = "gemini-2.5-flash"', f'model    = "{bad}"', 1)
     p = tmp_path / "run_config.toml"
     p.write_text(text, encoding="utf-8")
     with pytest.raises(ConfigError, match="R-7"):

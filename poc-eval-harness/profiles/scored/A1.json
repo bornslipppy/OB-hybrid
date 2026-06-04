@@ -1,0 +1,51 @@
+{
+  "_comment": "SCORED profile A1 — Group A clean happy path. Self-owner, direct-booking channel → S5 surfaces. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group A / A1. No facts invented.",
+  "profile_id": "A1",
+  "group": "A",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Harbor Point Rentals",
+    "location": "Sarasota, FL",
+    "listing_count": 5,
+    "channels": ["airbnb", "vrbo", "direct"],
+    "ownership_model": "all_self_owned",
+    "revenue_recognition": "checkin_date",
+    "non_refundable_enabled": false,
+    "security_deposit_type": "damage_waiver",
+    "security_deposit_amount": 50,
+    "payment_timing": "at_booking",
+    "mandatory_fees": [],
+    "taxes": [
+      { "tax_type": "sales_tax", "rate": 6, "scope": "account_wide", "jurisdiction": "Florida" },
+      { "tax_type": "tourist_tax", "rate": 2, "scope": "account_wide", "jurisdiction": "Sarasota County" }
+    ],
+    "teammates": [],
+    "focus_topics": ["pricing_strategy", "guest_messaging"],
+    "pain": "Manual pricing takes too much time. I'm adjusting rates by hand every morning.",
+    "website": { "brand_name": "Harbor Point Stays", "domain": "guesty_subdomain", "terms": "guesty_terms" }
+  },
+  "persona": "Cooperative, organized, answers every question directly and in full. Uses standard industry vocabulary (not Airbnb-specific jargon). Does not seek advice. Provides numbers without being asked twice. When the agent echoes back, confirms immediately. Does not volunteer off-topic information. Response style: short, professional sentences.",
+  "answer_key": {
+    "listing_count": "recorded:5",
+    "channels": "recorded:[\"airbnb\",\"vrbo\",\"direct\"]",
+    "revenue_recognition": "recorded:checkin_date [provisional G3]",
+    "non_refundable_enabled": "recorded:false",
+    "security_deposit_type": "recorded:damage_waiver",
+    "security_deposit_amount": "recorded:50",
+    "payment_timing": "recorded:at_booking",
+    "payment_split": "skipped",
+    "mandatory_fees": "skipped",
+    "taxes": "flagged",
+    "website_brand_name": "recorded:Harbor Point Stays",
+    "website_domain": "recorded:guesty_subdomain",
+    "website_terms": "recorded:guesty_terms",
+    "decision_owner": "recorded:just_me",
+    "teammates": "skipped",
+    "focus_topics": "recorded:[\"pricing_strategy\",\"guest_messaging\"]",
+    "pain": "recorded:Manual pricing takes too much time. Adjusting rates by hand every morning.",
+    "ownership_model": "recorded:all_self_owned",
+    "owners": "skipped",
+    "rate_strategy": "recorded:dynamic"
+  },
+  "_note": "S5 surfaces (direct channel present). owners skipped (no managed properties). taxes always flagged (human handoff). decision_owner derived just_me from 'solo operator'. S0a (business_name/location) and S3 placeholder slots (checkin_method/cleaning_managed_by) not scored. ownership_model normalized to canonical schema enum 'all_self_owned' (spec v1.3). mandatory_fees skipped: the $85 cleaning fee is per-property (configured per listing), not an account-level mandatory fee — agent correctly routes it per S4 NOTE in system prompt."
+}

@@ -18,6 +18,26 @@
 # Source: A1 = Harbor Point Rentals (Sarasota FL, 5 self-owned).
 #         A2 = Sunrise Valley Vacations (2 owners, flat-fee).
 
+# S0a — Salesforce Seed (pre-fill confirmation)
+account_name: "Harbor Point Rentals."
+country: "United States."
+active_listing_count: "Five active listings."
+connected_channels: "Airbnb, VRBO, and our direct booking website."
+third_party_tools: "No third-party tools — we handle everything manually."
+logo_url: "I don't have a logo URL handy right now."
+business_profile: "Harbor Point Rentals, admin@harborpointrentals.com."
+ob_specialist_name: "I'm not sure — I think it was Jordan."
+
+# S0b — Handover note extractions (confirm before recording)
+handover_note_raw: ~
+migration_source: "We weren't on any PMS before — this is our first time."
+prior_pms_experience: "This is our first time using a PMS."
+ob_language: "English."
+addon_intent: "I'm interested in the owner portal."
+
+# S1 — Brand
+logo_file: "I don't have a logo file ready to upload right now."
+
 # S2 — Channels / listing count
 listing_count: "I have 5 listings."
 channels: "We're on Airbnb, VRBO, and we also take direct bookings through our own website."
@@ -34,10 +54,14 @@ revenue_recognition: "We recognize revenue at check-in."
 non_refundable_enabled: "No, we don't offer non-refundable rates."
 security_deposit_type: "We collect a $50 damage waiver — it's not a traditional deposit."
 security_deposit_amount: "Fifty dollars."
+security_deposit_amount_confirm: "Yes, that's correct — $50."
 payment_timing: "Full payment at booking."
 payment_split: ~ # not applicable — at_booking
-mandatory_fees: "We charge an $85 cleaning fee per stay."
+mandatory_fees: "No — the cleaning fee is set per listing, so nothing to add here."
+mandatory_fees_more: "That's all the fees."
 taxes: "Florida state sales tax at 6% plus the Sarasota county tourist development tax, which is 2%."
+taxes_confirm: "Yes, that's correct."
+taxes_more: "That's all the taxes."
 
 # S5 — Website (surfaces for A1 only, not A2)
 website_brand_name: "Harbor Point Stays."
@@ -47,6 +71,7 @@ website_terms: "The standard terms are fine."
 # S6 — Governance
 decision_owner: "Just me. I'm the only one making decisions."
 teammates: ~ # not applicable — solo
+teammates_more: "No more teammates, that's all."
 
 # S7 — Focus & pain
 focus_topics: "Pricing strategy and guest messaging are my main focus areas."
@@ -82,4 +107,4 @@ a2_overrides:
   website_domain: ~
   website_terms: ~
   taxes: "We're in Tennessee — state sales tax at 7%, no local tourist tax."
-  mandatory_fees: "Cleaning fee $75 for smaller units, $100 for the larger ones."
+  mandatory_fees: "No account-level fees — the cleaning fee is set per listing, not here."

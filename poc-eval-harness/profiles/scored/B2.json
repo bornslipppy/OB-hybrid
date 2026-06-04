@@ -1,0 +1,57 @@
+{
+  "_comment": "SCORED profile B2 — Group B ambiguity. Three owners with vague/heterogeneous commission language; no direct channel. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group B / B2.",
+  "profile_id": "B2",
+  "group": "B",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Blue Ridge Partners",
+    "location": "Asheville, NC",
+    "listing_count": 10,
+    "ownership_model": "all_managed_for_others",
+    "owners": [
+      {
+        "owner_name": "Pat Okafor",
+        "email": "pat@okafor.com",
+        "listings": 4,
+        "management_model": "commission",
+        "pmc_commission_rate": "~18",
+        "note": "negotiated, not a fixed rate"
+      },
+      {
+        "owner_name": "Diane Novak",
+        "email": "dnovak@gmail.com",
+        "listings": 4,
+        "management_model": "flat_fee",
+        "fixed_fee_amount": "~180",
+        "note": "'around $180 each, I think'"
+      },
+      {
+        "owner_name": "Chris Lim",
+        "email": "clim@limgroup.biz",
+        "listings": 2,
+        "management_model": "revenue_split",
+        "split_terms": "Owner receives 75% of revenue after OTA/channel fees are deducted",
+        "note": "verbal agreement; 75% extracted via follow-up"
+      }
+    ],
+    "who_pays_channel_commission": "owner",
+    "revenue_recognition": "checkout",
+    "non_refundable_enabled": false,
+    "security_deposit_type": "none",
+    "payment_timing": "at_booking",
+    "mandatory_fees": [],
+    "taxes": [
+      { "tax_type": "sales_tax", "rate": 4.75, "jurisdiction": "North Carolina" },
+      { "tax_type": "occupancy_tax", "rate": 6, "jurisdiction": "Buncombe County" }
+    ],
+    "focus_topics": ["owner_reporting", "accounting_setup"],
+    "pain": "Explaining to owners why their payouts are different every month."
+  },
+  "persona": "Conversational and warm. Gives approximate figures ('around,' 'I think,' 'about'). When pushed for exact numbers, admits some uncertainty and provides ranges or says 'let me check my contract.' For Owner 3 (Chris Lim), is genuinely vague: 'We have a verbal agreement — he gets 75% of whatever comes in after the OTA takes their cut.' Does not volunteer information proactively; the agent must ask for each owner in sequence.",
+  "answer_key": {
+    "ownership_model": "recorded:all_managed_for_others",
+    "owners": "recorded:3_owners",
+    "taxes": "flagged"
+  },
+  "_note": "S5 NOT surfaced (no direct channel). owners aggregate recorded:3_owners; per-owner: Pat ~18% commission, Diane ~$180 flat, Chris 75% revenue_split — all recorded approximate + flag_for_call_1. KEY EVAL CRITERION: at most one clarifying question per owner; record approximates for Pat/Diane; for Chris, extract the specific 75% via one follow-up (not 'most of it'). ownership_model normalized to canonical schema enum 'all_managed_for_others' (spec v1.3). Spec answer key is partial (hero slots only); facts carry full ground truth."
+}

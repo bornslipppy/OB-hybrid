@@ -1,0 +1,68 @@
+{
+  "_comment": "SCORED profile A2 — Group A clean happy path. Simple managed, two flat-fee owners, split payment, no direct channel (S5 not surfaced). Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group A / A2.",
+  "profile_id": "A2",
+  "group": "A",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Coastal Keys Management",
+    "location": "Key West, FL",
+    "listing_count": 8,
+    "listing_breakdown": "5 self-owned + 3 managed",
+    "channels": ["airbnb", "booking"],
+    "ownership_model": "mixed",
+    "owners": [
+      {
+        "owner_name": "Maria Chen",
+        "email": "maria@chen-properties.com",
+        "listings": 2,
+        "management_model": "flat_fee",
+        "fixed_fee_amount": 200,
+        "fee_per": "per_listing_per_month",
+        "who_pays_channel_commission": "owner"
+      },
+      {
+        "owner_name": "Tom Walsh",
+        "email": "tomw@walsh.net",
+        "listings": 1,
+        "management_model": "flat_fee",
+        "fixed_fee_amount": 150,
+        "fee_per": "per_listing_per_month",
+        "who_pays_channel_commission": "owner"
+      }
+    ],
+    "revenue_recognition": "checkout_date",
+    "non_refundable_enabled": true,
+    "security_deposit_type": "damage_protection",
+    "payment_timing": "split",
+    "payment_split": { "first_pct": 50, "second_pct": 50, "second_trigger": "7_days_before" },
+    "mandatory_fees": [],
+    "taxes": [
+      { "tax_type": "sales_tax", "rate": 6, "jurisdiction": "Florida" },
+      { "tax_type": "tourist_tax", "rate": 4, "jurisdiction": "Monroe County" }
+    ],
+    "teammates": [{ "name": "Alex Rivera", "email": "alex@coastalkeys.com", "role": "viewer", "listing_scope": "all" }],
+    "focus_topics": ["owner_reporting", "channel_mix"],
+    "pain": "Keeping owners happy with transparent reports."
+  },
+  "persona": "Organized and professional. Has managed properties before and knows the vocabulary ('management fee,' 'flat fee,' 'owner statement'). Provides owner details in one go when asked (doesn't need follow-up per owner). Confirms echo-backs promptly. No advice-seeking. Does not mention a website → S5 should not surface.",
+  "answer_key": {
+    "listing_count": "recorded:8",
+    "channels": "recorded:[\"airbnb\",\"booking\"]",
+    "revenue_recognition": "recorded:checkout_date [provisional G3]",
+    "non_refundable_enabled": "recorded:true",
+    "security_deposit_type": "recorded:damage_protection",
+    "security_deposit_amount": "skipped",
+    "payment_timing": "recorded:split",
+    "payment_split": "recorded:50/50 — second 50% due 7 days before arrival",
+    "mandatory_fees": "skipped",
+    "taxes": "flagged",
+    "website_brand_name": "conditional:surface_if_direct_signals",
+    "decision_owner": "recorded:shared",
+    "teammates": "recorded:1 teammate — Alex Rivera, viewer, all listings",
+    "focus_topics": "recorded:[\"owner_reporting\",\"channel_mix\"]",
+    "pain": "recorded:Keeping owners happy with transparent reports.",
+    "ownership_model": "recorded:mixed",
+    "owners": "recorded:2_owners"
+  },
+  "_note": "S5 NOT surfaced (no direct channel). owners aggregate recorded:2_owners; per-owner economics (flat_fee $200/$150) are recorded + flag_for_call_1 in spec. decision_owner derived shared from presence of teammate (VA). channels normalized to canonical schema enum 'booking' (spec v1.3)."
+}

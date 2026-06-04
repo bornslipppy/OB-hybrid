@@ -18,7 +18,7 @@ These functions take their provider client and model injected (``_client`` /
 
 Provider mapping (FR-21 / D-3):
   Agent   → Cursor API (OpenAI-compatible REST, family="cursor")
-  Simulator → Google Generative AI / Gemini (family="gemini")
+  Simulator → Google Gemini via google-genai SDK (family="gemini")
 """
 
 from __future__ import annotations
@@ -169,7 +169,7 @@ def simulator_completion(
 
     ``_client`` is a callable factory ``(system_instruction) -> GenerativeModel`` so
     the per-call system prompt (respondent facts) is baked in fresh each call without
-    this function importing ``google.generativeai`` directly. The ``seed`` param is
+    this function importing ``google.genai`` directly. The ``seed`` param is
     accepted but silently discarded — Gemini has no equivalent (see R-2).
     """
     model_instance = _client(system or "")

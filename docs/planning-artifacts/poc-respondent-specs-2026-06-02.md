@@ -737,6 +737,12 @@ False-prefill on these is a Component-6 failure even if F1 on rich notes is high
 *Next steps: assign reviewers → freeze provisional answer keys as v1.1 → begin Phase 2 (decision tree authoring, independent author, blind to profiles). Handover-note seeds (Appendix C/D) feed Component 6 labeling.*
 ---
 
+## Changelog
+
+- **v1.3 (2026-06-02)** — Enum normalization. Corrected 6 answer-key values to canonical schema enums (self_owned → all_self_owned, managed_only → all_managed_for_others, booking_com → booking). Transcription error from markdown-to-JSON conversion; no ground-truth intent changed.
+
+---
+
 ## Freeze Record
 
 | Field | Value |

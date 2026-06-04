@@ -470,7 +470,9 @@ _ADVICE_TRIGGERS = (
 _IDK_TRIGGERS = (
     "i don't know", "idk", "not sure", "no idea", "i'm not sure",
     "don't have that", "haven't decided", "skip", "defer", "pass",
-    "move on", "next", "later", "i'll come back",
+    "move on", "moved on", "next", "later", "i'll come back",
+    "with jordan", "discuss with", "with your team", "with someone on your",
+    "rather not", "i'd rather",
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -721,10 +723,13 @@ class TreeSystem:
         self._owner_capture: _OwnerCapture | None = None
         self._fee_item: _FeeItem | None = None   # current fee being built
         self._in_fee_loop: bool = False          # currently collecting fees
+        self._fee_ask_pending: bool = False       # a fee was just committed; ask for more next
         self._tax_item: _TaxItem | None = None   # current tax being built
         self._in_tax_loop: bool = False          # currently collecting taxes
+        self._tax_ask_pending: bool = False       # a tax was just committed; ask for more next
         self._teammate_buf: list[dict] = []      # accumulated teammate records
         self._in_teammate_loop: bool = False
+        self._teammate_ask_pending: bool = False  # a teammate flag was emitted; ask for more next
 
         # Tracks how many clarifying questions have been asked per slot (max 1)
         self._ambiguity_count: dict[str, int] = {}
@@ -770,6 +775,48 @@ class TreeSystem:
     def _dispatch_reply(
         self, state: ProfileState, reply: str, history: list[dict]
     ) -> NextAction:
+        # 0. Post-commit / post-flag gates — either a record was just committed, or an
+        #    echo was flagged/exhausted without committing. In both cases the loop item
+        #    is done; ask for more before re-entering the reply handler.
+        if self._fee_ask_pending:
+            self._fee_ask_pending = False
+            return self._ask_fee_next()
+        if self._tax_ask_pending:
+            self._tax_ask_pending = False
+            return self._ask_tax_next()
+
+        # Recovery: echo was flagged/exhausted (echo_state cleared) but loop item was
+        # not committed, leaving the item stuck in "echo" phase. Clear the stale item
+        # and ask for the next one so the loop doesn't spin on empty tool-call batches.
+        if (self._in_fee_loop
+                and self._fee_item is not None
+                and self._fee_item.phase == "echo"
+                and self._echo_state is None):
+            self._fee_item = None
+            return self._ask_fee_next()
+        if (self._in_tax_loop
+                and self._tax_item is not None
+                and self._tax_item.phase == "echo"
+                and self._echo_state is None):
+            self._tax_item = None
+            return self._ask_tax_next()
+
+        if self._teammate_ask_pending:
+            self._teammate_ask_pending = False
+            return self._ask_teammate_next()
+
+        # Recovery: owner echo was flagged/exhausted for an echo-requiring econ phase;
+        # advance past the stuck phase so the same reply cannot re-trigger the same echo.
+        _OWNER_ECHO_PHASES = frozenset(("commission_rate", "fixed_fee_amount", "split_terms"))
+        if (self._owner_capture is not None
+                and self._owner_capture.econ_phase in _OWNER_ECHO_PHASES
+                and self._echo_state is None):
+            oc = self._owner_capture
+            if oc.econ_phase == "commission_rate":
+                oc.econ_phase = "channel_commission"
+                return self._ask_owner_next(state)
+            return self._commit_owner(oc, state)
+
         # 1. Echo confirmation takes priority
         if self._echo_state is not None:
             return self._handle_echo_confirmation(state, reply)
@@ -1264,6 +1311,14 @@ class TreeSystem:
             new_amount, new_unit = _parse_amount(reply)
             if new_amount is not None and isinstance(es.value, dict):
                 corrected_value = {"amount": new_amount, "unit": new_unit}
+                # User restated the same value (scripted or LLM paraphrase) — treat as
+                # implicit confirmation to prevent infinite echo loops.
+                if corrected_value == es.value:
+                    self._echo_state = None
+                    self._pending_events.append(
+                        UserConfirmed(turn=state.turn_count, slot=es.slot, subfield=es.subfield)
+                    )
+                    return self._commit_echo_value(es, state)
                 self._pending_events.append(
                     UserCorrected(
                         turn=state.turn_count, slot=es.slot, subfield=es.subfield,
@@ -1354,6 +1409,7 @@ class TreeSystem:
         if self._fee_item is not None and self._fee_item.phase == "echo":
             fi = self._fee_item
             self._fee_item = None
+            self._fee_ask_pending = True  # ask "Any more fees?" before re-entering reply dispatch
             tc: list[Any] = [
                 AddFee(fee_type=fi.fee_type, amount=fi.amount or 0.0,
                        unit=fi.unit or "flat")  # type: ignore[arg-type]
@@ -1399,8 +1455,10 @@ class TreeSystem:
             self._current_slot = None
             return [SkipQuestion(field_id="mandatory_fees", reason="User has no mandatory fees")]  # type: ignore[return-value]
 
-        # "done" / "that's all" → close the loop (we already have some fees)
-        if any(w in t for w in ("done", "that's all", "that's it", "no more", "nothing else")):
+        # "done" / "that's all" / "move on" → close the loop (we already have some fees)
+        if any(w in t for w in ("done", "that's all", "that's it", "no more", "nothing else",
+                                 "moved on", "move on", "we're done", "we are done",
+                                 "already answered", "already told")):
             self._in_fee_loop = False
             self._fee_item = None
             self._current_slot = None
@@ -1435,7 +1493,7 @@ class TreeSystem:
                 self._fee_item.phase = "echo"
                 return self._begin_echo(
                     slot="mandatory_fees",
-                    subfield=self._fee_item.fee_type,
+                    subfield="amount",  # matches _COMPOSITE_ECHO["add_fee"] = ("mandatory_fees", ("amount",))
                     value={"amount": amount, "unit": unit},
                     text_repr=(
                         f"a {self._fee_item.fee_type} of "
@@ -1457,7 +1515,7 @@ class TreeSystem:
             self._fee_item.phase = "echo"
             return self._begin_echo(
                 slot="mandatory_fees",
-                subfield=self._fee_item.fee_type,
+                subfield="amount",  # matches _COMPOSITE_ECHO["add_fee"] = ("mandatory_fees", ("amount",))
                 value={"amount": amount, "unit": unit},
                 text_repr=(
                     f"a {self._fee_item.fee_type} of "
@@ -1472,7 +1530,7 @@ class TreeSystem:
         """After committing a fee, ask if there are more."""
         return UserQuestion(
             text=_QUESTIONS["mandatory_fees_more"],
-            primary_slot="mandatory_fees",
+            primary_slot="mandatory_fees_more",
         )
 
     # ── Tax collection loop (taxes — always flagged) ──────────────────────────
@@ -1496,7 +1554,9 @@ class TreeSystem:
             self._current_slot = None
             return [SkipQuestion(field_id="taxes", reason="User has no taxes to configure")]  # type: ignore[return-value]
 
-        if any(w in t for w in ("done", "that's all", "no more", "nothing else", "that's it")):
+        if any(w in t for w in ("done", "that's all", "no more", "nothing else", "that's it",
+                                 "moved on", "move on", "we're done", "we are done",
+                                 "already answered", "already told")):
             self._in_tax_loop = False
             self._tax_item = None
             self._current_slot = None
@@ -1549,7 +1609,7 @@ class TreeSystem:
             ti.phase = "echo"
             return self._begin_echo(
                 slot="taxes",
-                subfield=ti.tax_type,
+                subfield=None,  # add_tax is a whole-record echo unit (subfield=None per _COMPOSITE_ECHO)
                 value={"tax_type": ti.tax_type, "inclusivity": ti.inclusivity,
                        "what_taxed": ti.what_taxed, "scope": ti.scope},
                 text_repr=(
@@ -1566,6 +1626,7 @@ class TreeSystem:
         ti = self._tax_item
         assert ti is not None
         self._tax_item = None
+        self._tax_ask_pending = True  # ask "Any more taxes?" before re-entering reply dispatch
         tt_other = ti.tax_type_other if ti.tax_type == "other" else None
         return [  # type: ignore[return-value]
             AddTax(
@@ -1585,7 +1646,7 @@ class TreeSystem:
         ]
 
     def _ask_tax_next(self) -> NextAction:
-        return UserQuestion(text=_QUESTIONS["taxes_more"], primary_slot="taxes")
+        return UserQuestion(text=_QUESTIONS["taxes_more"], primary_slot="taxes_more")
 
     # ── Teammate collection loop ─────────────────────────────────────────────
 
@@ -1630,6 +1691,7 @@ class TreeSystem:
                   "listing_scope": "all"}
             self._teammate_buf.append(tm)
         elif name and not email:
+            self._teammate_ask_pending = True  # ask "Any more?" next, not re-process same reply
             return [  # type: ignore[return-value]
                 FlagForCall1(
                     topic="teammate_missing_email",
@@ -1643,7 +1705,7 @@ class TreeSystem:
         return UserQuestion(text=_QUESTIONS["teammates_more"], primary_slot="teammates")
 
     def _ask_teammate_next(self) -> NextAction:
-        return UserQuestion(text=_QUESTIONS["teammates_more"], primary_slot="teammates")
+        return UserQuestion(text=_QUESTIONS["teammates_more"], primary_slot="teammates_more")
 
     # ── S8 Owner-capture sub-FSM ──────────────────────────────────────────────
     #

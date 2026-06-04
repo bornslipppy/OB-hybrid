@@ -1,0 +1,39 @@
+{
+  "_comment": "SCORED profile B1 — Group B ambiguity. Channel-dependent payment timing; direct channel → S5 surfaces. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group B / B1.",
+  "profile_id": "B1",
+  "group": "B",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Summit Stay Co",
+    "location": "Breckenridge, CO",
+    "listing_count": 12,
+    "channels": ["airbnb", "vrbo", "direct"],
+    "ownership_model": "all_self_owned",
+    "revenue_recognition": "checkin",
+    "non_refundable_enabled": true,
+    "non_refundable_note": "Yes on select listings (mountain season)",
+    "security_deposit_type": "damage_waiver",
+    "security_deposit_amount": 75,
+    "payment_timing_direct": "50% at booking, 50% two weeks before arrival",
+    "payment_timing_ota": "Collected by OTA at booking (not managed in Guesty)",
+    "mandatory_fees": [{ "fee_type": "hot_tub", "amount": 40, "per": "stay", "applies_to": "select_listings" }],
+    "taxes": [
+      { "tax_type": "sales_tax", "rate": 2.9, "jurisdiction": "Colorado" },
+      { "tax_type": "lodging_tax", "rate": 2, "jurisdiction": "Summit County" },
+      { "tax_type": "city_tax", "rate": 2.5, "jurisdiction": "Breckenridge" }
+    ],
+    "focus_topics": ["pricing_strategy", "accounting_setup"],
+    "pain": "Reconciling what Airbnb and VRBO pay me with what's actually in the system. It's a mess."
+  },
+  "persona": "Detailed and thorough; volunteers channel-level breakdowns without being asked. When agent asks about payment timing, respondent answers: 'Depends on the channel — Airbnb and VRBO collect at booking, but for direct bookings I take half upfront and the other half two weeks out.' Does not simplify unless agent pushes. Does not seek advice. Mentions direct bookings unprompted when discussing channels.",
+  "answer_key": {
+    "channels": "recorded:[\"airbnb\",\"vrbo\",\"direct\"]",
+    "payment_timing": "recorded:channel-dependent — OTA collected_by_channel; direct split",
+    "payment_split": "recorded:50/50 — second 50% due 14 days before arrival (direct channel only)",
+    "mandatory_fees": "recorded:hot_tub 40 per stay (select listings)",
+    "taxes": "flagged",
+    "website_brand_name": "conditional:surface_if_direct_signals",
+    "ownership_model": "recorded:all_self_owned"
+  },
+  "_note": "S5 SURFACES (direct bookings confirmed) — represented as the conditional default; surfacing is intentional per spec. KEY EVAL CRITERION: agent must ask exactly ONE clarifying question for payment timing and record the channel-conditional structure, not a single enum. ownership_model normalized to canonical schema enum 'all_self_owned' (spec v1.3). Spec answer key is partial (hero/ambiguity slots only); facts carry full ground truth."
+}

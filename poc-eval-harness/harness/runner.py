@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable
 
 from kernel.protocol import EndConversation, UserQuestion
-from kernel.state import ProfileState, StateReducer
+from kernel.state import EndSectionError, ProfileState, StateReducer
 from kernel.trace import SessionEnd, ToolCallEvent, TraceWriter, UserFacingQuestion
 
 from harness.manifest import FreezeManifest
@@ -80,19 +80,30 @@ class RetryPolicy:
 _MAX_ITERATIONS = 1000
 
 
-def _drain_trace_events(system: Any, trace: TraceWriter | None) -> None:
-    """Append any echo-lifecycle events the system surfaces this turn (forward-compat).
+def _drain_trace_events(
+    system: Any,
+    trace: TraceWriter | None,
+    state: ProfileState,
+    reducer: StateReducer,
+) -> ProfileState:
+    """Append echo-lifecycle events to the trace and fold them into state.
 
     A system may expose ``drain_trace_events() -> list[event]`` to emit
     ``value_introduced`` / ``echo_issued`` / ``user_confirmed`` / ``user_corrected``
     into the canonical trace without the runner understanding echo semantics (R-10).
-    Systems without the hook simply contribute no extra events.
+    Each event is also passed through ``reducer.observe()`` so that ``echo_pending``
+    flags on ``ProfileState.slots`` stay current — required for the agent's
+    ``_extract_primary_slot_hint`` echo-confirmation routing (EC-27 / Story 4.6).
+    Systems without the hook contribute no extra events and state is returned unchanged.
     """
     drain = getattr(system, "drain_trace_events", None)
-    if trace is None or not callable(drain):
-        return
+    if not callable(drain):
+        return state
     for ev in drain() or []:
-        trace.append(ev)
+        if trace is not None:
+            trace.append(ev)
+        state = reducer.observe(state, ev)
+    return state
 
 
 def run_conversation(
@@ -121,7 +132,7 @@ def run_conversation(
             break
 
         action = system.next_action(state, history)
-        _drain_trace_events(system, trace)
+        state = _drain_trace_events(system, trace, state, reducer)
 
         if isinstance(action, EndConversation):
             end_reason = action.reason
@@ -150,7 +161,13 @@ def run_conversation(
                             args=tc.model_dump(exclude={"tool"}),
                         )
                     )
-                state = reducer.apply(state, tc)
+                try:
+                    state = reducer.apply(state, tc)
+                except EndSectionError:
+                    # Model called end_section prematurely (slots still open).
+                    # Skip the invalid call and let the conversation continue
+                    # rather than crashing the run as errored.
+                    pass
             continue
 
         # Unknown action type — treat as a policy error.
@@ -341,3 +358,8 @@ async def run_campaign(
 
     await asyncio.gather(*tasks)
     return result
+
+
+if __name__ == "__main__":
+    from harness.cli import run_cli  # noqa: E402
+    raise SystemExit(run_cli())

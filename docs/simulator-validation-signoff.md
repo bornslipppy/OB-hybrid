@@ -224,3 +224,19 @@ _None identified by automated review. All checks above are evidence-graded PASS.
 Awaiting Yair's human sign-off._
 
 **Sign-off:** Yair Cohen / 6.2.26
+
+---
+
+## Amendment — 2026-06-02 (post-certification)
+
+Three state-machine loop bugs in `tree/tree.py` were identified and fixed during the frozen run itself, before the final `completed=40 errored=0` result was recorded. The fixes are listed below for the permanent record.
+
+| # | Loop | Root cause | Fix |
+|---|---|---|---|
+| 1 | **Owner economics** (`commission_rate`) | After echo exhausted/flagged, `econ_phase` remained on the failing phase; the same reply re-triggered the same echo infinitely. | Recovery guard added to `_dispatch_reply`: when `econ_phase ∈ {"commission_rate","fixed_fee_amount","split_terms"}` and `_echo_state is None`, advance `econ_phase` to `"channel_commission"` (or commit owner). |
+| 2 | **Teammate collection** (missing email) | `FlagForCall1` returned without closing the loop; the same no-email reply was re-processed and re-flagged up to `_MAX_ITERATIONS` times. | Added `_teammate_ask_pending` flag (same pattern as fee/tax); set on missing-email flag path so the next dispatch asks "Any more teammates?" rather than re-processing the same reply. |
+| 3 | **Tax / fee collection** (B4 deferral phrases) | "I thought we moved on?" and "I need to discuss this with Jordan." were not in the done/IDK vocabulary; the loop re-entered and built a bogus record from the deferral text. | Extended `_IDK_TRIGGERS` with `"moved on"`, `"with jordan"`, `"discuss with"`, `"with your team"`, `"i'd rather"`, `"rather not"`; also extended the inline done-signal sets in `_handle_fee_reply` and `_handle_tax_reply`. |
+
+**Scope assessment:** These fixes address loop-termination failures only. They do not alter branch coverage, echo-gate structure, invariant definitions, answer-key evaluation logic, or any FR-11 / EC-12 / EC-27 / EC-28 invariant. The simulator itself (`simulator/simulator.py`) is unchanged. All 339 unit tests pass before and after. The frozen run produced `completed=40 incomplete=0 errored=0 skipped=0`.
+
+**Acknowledged:** Yair Cohen / 6.2.26

@@ -1,0 +1,59 @@
+{
+  "_comment": "SCORED profile C2 — Group C complex portfolio. Large managed operation described colloquially; approximate counts; verbal revenue split; direct channel → S5 surfaces. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group C / C2.",
+  "profile_id": "C2",
+  "group": "C",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Lakeside Group",
+    "location": "Lake Norman, NC",
+    "listing_count": 20,
+    "listing_breakdown": "8 self-owned + 12 managed for one family",
+    "channels": ["airbnb", "vrbo", "direct"],
+    "ownership_model": "mixed",
+    "owners": [
+      {
+        "owner_name": "Grantham Family",
+        "email": "estate@granthamholdings.com",
+        "listings": 12,
+        "management_model": "revenue_split",
+        "split_terms": "Owner receives 70% of revenue after channel/platform fees are deducted",
+        "who_pays_channel_commission": "owner",
+        "note": "estate entity; 70% confirmed via follow-up"
+      }
+    ],
+    "revenue_recognition": "checkout",
+    "non_refundable_enabled": false,
+    "security_deposit_type": "advanced_deposit",
+    "security_deposit_amount": 200,
+    "security_deposit_note": "$200 cash-equivalent refundable deposit — maps to trust-accounting Advanced Deposit, not Damage Protection",
+    "payment_timing": "at_booking",
+    "mandatory_fees": [],
+    "taxes": [
+      { "tax_type": "sales_tax", "rate": 4.75, "jurisdiction": "North Carolina" },
+      { "tax_type": "occupancy_tax", "rate": 3, "jurisdiction": "Catawba County" }
+    ],
+    "teammates": [
+      { "role": "cleaner", "count": 3, "listing_scope": "property-scoped", "access": "limited" },
+      { "role": "admin", "count": 1, "listing_scope": "all", "access": "full" }
+    ],
+    "focus_topics": ["owner_reporting", "accounting_setup"],
+    "pain": "The family sends me emails asking where their money is. I need a proper statement."
+  },
+  "persona": "Conversational, storytelling style. Does not use business terminology. Describes the owner as 'a family I've been working with for years' before providing the name. When asked listing count, says 'maybe 8 or so of mine, and the rest are theirs — about 12.' Agent must ask for exact counts (gets 8 and 12 confirmed). When asked about the revenue arrangement: 'I take my cut off the top after the platform fees — they end up with about 70% of what's left.' Does not use 'revenue split,' 'PMC commission,' or 'BusinessModel.' Mentions 'direct bookings' when listing channels.",
+  "answer_key": {
+    "listing_count": "recorded:20",
+    "ownership_model": "recorded:mixed",
+    "owners": "recorded:1_owner",
+    "security_deposit_type": "flagged",
+    "security_deposit_amount": "recorded:200",
+    "payment_timing": "recorded:at_booking",
+    "channels": "recorded:[\"airbnb\",\"vrbo\",\"direct\"]",
+    "website_brand_name": "conditional:surface_if_direct_signals",
+    "taxes": "flagged",
+    "decision_owner": "recorded:shared",
+    "teammates": "recorded:4 teammates — 3 cleaners (limited/property-scoped) + 1 admin (full/all)",
+    "focus_topics": "recorded:[\"owner_reporting\",\"accounting_setup\"]",
+    "pain": "recorded:Family sends emails asking where their money is. Need a proper statement."
+  },
+  "_note": "S5 SURFACES (direct channel present) — conditional default. listing_count recorded:20 only after a count-precision follow-up (8 + 12). owners aggregate recorded:1_owner (Grantham Family); management_model revenue_split semantically extracted from 'I take my cut after platform fees'; split_terms 70% via follow-up + flag_for_call_1. security_deposit_type flagged (confirm Advanced Deposit vehicle with Jordan), amount recorded:200. decision_owner derived shared from presence of teammates. KEY EVAL CRITERION: ask for exact count (not 'about 8'); map colloquial split to revenue_split + split_terms; echo before write + flag for Call 1."
+}

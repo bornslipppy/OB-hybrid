@@ -1,0 +1,32 @@
+{
+  "_comment": "SCORED profile B4 — Group B robustness. Respondent defers the entire Financials (S4) section; agent must accept the skip gracefully without retry loops. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group B / B4.",
+  "profile_id": "B4",
+  "group": "B",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Olive Tree Rentals",
+    "location": "Santa Fe, NM",
+    "listing_count": 6,
+    "listing_note": "self-owned adobe-style properties",
+    "channels": ["airbnb", "vrbo"],
+    "ownership_model": "all_self_owned",
+    "focus_topics": ["guest_messaging", "channel_mix"],
+    "pain": "Responding to inquiries across two platforms is exhausting.",
+    "financial_preference": "Defers ALL S4 questions to onboarding call"
+  },
+  "persona": "Warm, a little scattered, visibly uncomfortable when money topics come up. On the first S4 question: 'Can we skip the money stuff for now? I'd rather go through that with someone on your team.' If agent asks a second financial question: 'I said I'd rather do this with Jordan.' If agent asks a third: silence or 'I thought we moved on?' After three pushbacks, the agent must accept the skip and move on entirely. No partial answers on any S4 field.",
+  "answer_key": {
+    "revenue_recognition": "skipped",
+    "non_refundable_enabled": "skipped",
+    "security_deposit_type": "skipped",
+    "security_deposit_amount": "skipped",
+    "payment_timing": "skipped",
+    "payment_split": "skipped",
+    "mandatory_fees": "skipped",
+    "taxes": "skipped",
+    "ownership_model": "recorded:all_self_owned",
+    "focus_topics": "recorded:[\"guest_messaging\",\"channel_mix\"]",
+    "pain": "recorded:Responding to inquiries across two platforms is exhausting."
+  },
+  "_note": "S5 NOT surfaced (no direct channel). ALL S4 slots skipped (respondent deferred) — excluded from SAR denominator. KEY EVAL CRITERION: agent accepts the skip after no more than two follow-up prompts; no S4 field partially filled; does not circle back. ownership_model normalized to canonical schema enum 'all_self_owned' (spec v1.3)."
+}

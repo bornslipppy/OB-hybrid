@@ -13,17 +13,17 @@ version = "0.1.0"
 # config_loader rejects any model containing "latest" at startup. These pinned
 # snapshots are hashed into the freeze manifest, so changing one re-freezes the run.
 [providers.agent]
-family   = "cursor"
-model    = "claude-opus-4-6"          # ratified agent snapshot (served via Cursor API)
+family   = "openai"                    # OpenAI-compatible endpoint (Gemini v1beta)
+model    = "gemini-2.5-flash"          # agent model (non-thinking; gemini-3.x needs thought_signature unsupported by OpenAI-compat)
 
 [providers.simulator]
 family   = "gemini"
-model    = "gemini-1.5-pro-002"       # ratified simulator snapshot (decorrelated family)
+model    = "gemini-2.5-flash"          # ratified simulator snapshot (decorrelated family; upgraded from deprecated gemini-1.5-pro-002 on 2026-06-02)
 
 [providers.extractor]
-# H2 extractor uses the same provider family as the agent (Cursor API / Claude).
-family   = "cursor"
-model    = "claude-opus-4-6"          # ratified extractor snapshot
+# H2 extractor uses the same provider as the agent.
+family   = "openai"
+model    = "gemini-2.5-flash"          # extractor model via OpenAI-compat endpoint
 
 # --- Temperature policy ------------------------------------------------------
 # D-2 / FR-6: temperature is a call-type, not an argument. These values are
@@ -42,7 +42,8 @@ k_runs = 5
 # Fixed seeds reduce variance where supported; real reproducibility = frozen inputs.
 seed_base   = 42     # run_index N → seed = seed_base + N
 # FR-8 invariant 7: conversation turn cap (user-facing turns).
-max_turns   = 60
+# PoC mode: capped at 20 to reduce LLM cost (full eval would use 60).
+max_turns   = 20
 
 # --- Freeze manifest ---------------------------------------------------------
 [freeze]

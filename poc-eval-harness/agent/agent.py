@@ -125,6 +125,8 @@ class AgentSystem:
         model: str,
         schema_path: str | Path,
         system_prompt: str | None = None,
+        account_brief: str | None = None,
+        opening_user_message: str | None = None,
         trace_writer: TraceWriter | None = None,
     ) -> None:
         self._client = cursor_client
@@ -136,6 +138,10 @@ class AgentSystem:
             system_prompt
             if system_prompt is not None
             else _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+        )
+        self._account_brief = (account_brief or "").strip()
+        self._opening_user_message = (
+            opening_user_message or "Ready to start the onboarding."
         )
 
         # Load schema once; FrameGraph is kept for _is_done() and _format_slot_status().
@@ -207,7 +213,7 @@ class AgentSystem:
         if not self._messages:
             system = self._build_system_prompt(state)
             greeting = glue_completion(
-                messages=[{"role": "user", "content": "Ready to start the onboarding."}],
+                messages=[{"role": "user", "content": self._opening_user_message}],
                 system=system,
                 _client=self._client,
                 _model=self._model,
@@ -292,7 +298,12 @@ class AgentSystem:
             # Keep the raw text (with markers) in the model's own message history;
             # the user only ever sees the stripped, clean text.
             self._messages.append({"role": "assistant", "content": text})
-            primary = _extract_primary_slot_hint(clean_text, state)
+            # Apply any EchoIssued events from this turn to a local state copy so
+            # _extract_primary_slot_hint can detect echo_pending slots and route
+            # to the <slot>_confirm key.  The canonical state update happens via
+            # drain_trace_events() in the runner after next_action returns (R-10).
+            hint_state = _apply_echo_events_locally(state, echo_events)
+            primary = _extract_primary_slot_hint(clean_text, hint_state)
             return UserQuestion(text=clean_text, primary_slot=primary)
 
         # --- Empty response (should not happen in practice) ---
@@ -325,7 +336,11 @@ class AgentSystem:
 
     def _build_system_prompt(self, state: ProfileState) -> str:
         """Append the current slot status to the base system prompt (FR-1/Story 3.1)."""
-        return f"{self._system_prompt_base}\n\n{self._format_slot_status(state)}"
+        parts = [self._system_prompt_base]
+        if self._account_brief:
+            parts.append(self._account_brief)
+        parts.append(self._format_slot_status(state))
+        return "\n\n".join(parts)
 
     def _format_slot_status(self, state: ProfileState) -> str:
         """Render current slot dispositions into a human-readable status block.
@@ -340,6 +355,7 @@ class AgentSystem:
         reachable_ids = {s.id for s in reachable}
 
         recorded: list[str] = []
+        prefilled: list[str] = []
         skipped: list[str] = []
         flagged: list[str] = []
         echo_pending: list[str] = []
@@ -355,6 +371,9 @@ class AgentSystem:
             if status == SlotStatus.RECORDED:
                 val = (s.value if s else None)
                 recorded.append(f"  - {slot.id}: {val!r}")
+            elif status == SlotStatus.PREFILLED_UNCONFIRMED:
+                val = (s.value if s else None)
+                prefilled.append(f"  - {slot.id}: {val!r} (confirm with user before recording)")
             elif status == SlotStatus.SKIPPED:
                 skipped.append(f"  - {slot.id}")
             elif status == SlotStatus.FLAGGED:
@@ -374,6 +393,11 @@ class AgentSystem:
         if recorded:
             lines.append("**RECORDED:**")
             lines.extend(recorded)
+            lines.append("")
+
+        if prefilled:
+            lines.append("**PREFILL (confirm with user — do not treat as recorded):**")
+            lines.extend(prefilled)
             lines.append("")
 
         if flagged:
@@ -472,6 +496,25 @@ class AgentSystem:
 # ------------------------------------------------------------------
 
 
+def _apply_echo_events_locally(state: ProfileState, echo_events: list[Any]) -> ProfileState:
+    """Return a state copy with EchoIssued events folded in — without a full StateReducer.
+
+    Used inside ``next_action`` to give ``_extract_primary_slot_hint`` an up-to-date
+    ``echo_pending`` picture *before* ``drain_trace_events`` runs in the harness loop.
+    Only ``EchoIssued`` events matter here (``UserConfirmed``/``UserCorrected`` clear
+    the flag, but those come from the *next* turn's text, not this one).
+    """
+    echo_slots = {ev.slot for ev in echo_events if isinstance(ev, EchoIssued)}
+    if not echo_slots:
+        return state
+    new = state.model_copy(deep=True)
+    for slot_id in echo_slots:
+        slot = new._slot(slot_id)
+        slot.echo_pending = True
+        new.slots[slot_id] = slot
+    return new
+
+
 def _coerce_value(raw: str) -> Any:
     """Light coercion of a marker value: int, then float, else the trimmed string."""
     s = raw.strip().strip("\"'")
@@ -504,19 +547,121 @@ def _detect_signals(facts: dict[str, Any]) -> dict[str, bool]:
     }
 
 
+_CONFIRMATION_PHRASES = (
+    "is that correct",
+    "just to confirm",
+    "to confirm",
+    "confirm —",
+    "confirm—",
+    "correct?",
+    "right?",
+    "is that right",
+    "does that sound right",
+)
+
+
 def _extract_primary_slot_hint(text: str, state: ProfileState) -> str | None:
     """Heuristically extract the primary slot being asked about in ``text``.
 
     Used to populate ``UserQuestion.primary_slot`` — a hint for the Group A
     simulator's slot-keyed scripted-turn lookup (FR-19 / EC-27). Returns ``None``
     when no single slot is identifiable (open-ended questions).
+
+    Echo-confirmation detection: when the question looks like a yes/no confirmation
+    ("Is that correct?", "Just to confirm…") and there is exactly one echo-pending
+    slot in state, return ``<slot>_confirm`` so the scripted simulator looks up the
+    confirmation reply instead of repeating the original fact (which would loop).
     """
     text_lower = text.lower()
 
+    # --- Echo-confirmation shortcut (must run before the general hint map) ---
+    # If the turn is a yes/no echo confirmation and one slot is pending, route to
+    # the <slot>_confirm key so the simulator returns "Yes, that's correct" instead
+    # of the original fact (which would re-trigger another echo round).
+    if any(phrase in text_lower for phrase in _CONFIRMATION_PHRASES):
+        pending = [fid for fid, s in state.slots.items() if s.echo_pending]
+        if len(pending) == 1:
+            return f"{pending[0]}_confirm"
+
     # Map key phrases to canonical slot IDs. Ordered by specificity (longer phrases first).
     _HINT_MAP: list[tuple[str, str]] = [
+        # S0a — Salesforce seed
+        ("account name", "account_name"),
+        ("company name", "account_name"),
+        ("business name", "account_name"),
+        ("account called", "account_name"),
+        ("call your", "account_name"),
+        ("name your", "account_name"),
+        ("what country", "country"),
+        ("which country", "country"),
+        ("where are your", "country"),
+        ("where do you", "country"),
+        ("based in", "country"),
+        ("located in", "country"),
+        ("properties are in", "country"),
+        ("operate in", "country"),
+        ("ob specialist", "ob_specialist_name"),
+        ("onboarding specialist", "ob_specialist_name"),
+        ("specialist name", "ob_specialist_name"),
+        ("your contact", "ob_specialist_name"),
+        ("guesty contact", "ob_specialist_name"),
+        ("who will be", "ob_specialist_name"),
+        ("assigned specialist", "ob_specialist_name"),
+        ("third-party tool", "third_party_tools"),
+        ("third party tool", "third_party_tools"),
+        ("external tool", "third_party_tools"),
+        ("software tool", "third_party_tools"),
+        ("pms tool", "third_party_tools"),
+        ("pricing tool", "third_party_tools"),
+        ("pricelabs", "third_party_tools"),
+        ("wheelhouse", "third_party_tools"),
+        ("beyond pricing", "third_party_tools"),
+        ("hostaway", "third_party_tools"),
+        ("other software", "third_party_tools"),
+        ("any tool", "third_party_tools"),
+        ("any software", "third_party_tools"),
+        ("any other system", "third_party_tools"),
+        ("business profile", "business_profile"),
+        ("business email", "business_profile"),
+        ("company email", "business_profile"),
+        ("company domain", "business_profile"),
+        ("your domain", "business_profile"),
+        ("logo url", "logo_url"),
+        ("url for your logo", "logo_url"),
+        ("active listing", "active_listing_count"),
+        ("connected channel", "connected_channels"),
+        # S0b — handover note extractions
+        ("prior system", "migration_source"),
+        ("previous pms", "migration_source"),
+        ("coming from", "migration_source"),
+        ("migrating from", "migration_source"),
+        ("switching from", "migration_source"),
+        ("used before", "migration_source"),
+        ("before guesty", "migration_source"),
+        ("first time", "prior_pms_experience"),
+        ("experience with", "prior_pms_experience"),
+        ("pms experience", "prior_pms_experience"),
+        ("used a pms", "prior_pms_experience"),
+        ("property management software", "prior_pms_experience"),
+        ("preferred language", "ob_language"),
+        ("language", "ob_language"),
+        ("spoken language", "ob_language"),
+        ("communication language", "ob_language"),
+        ("add-on", "addon_intent"),
+        ("addon", "addon_intent"),
+        ("add on", "addon_intent"),
+        ("interested in", "addon_intent"),
+        ("additional feature", "addon_intent"),
+        ("owner portal", "addon_intent"),
+        ("guest app", "addon_intent"),
+        # S1 — brand
+        ("logo file", "logo_file"),
+        ("upload.*logo", "logo_file"),
+        ("brand logo", "logo_file"),
+        ("company logo", "logo_file"),
+        ("upload a logo", "logo_file"),
+        ("your logo", "logo_file"),
         # S8 hero branch
-        ("management model", "owners"),
         ("get paid for managing", "owners"),
         ("commission rate", "owners"),
         ("fixed fee", "owners"),
@@ -526,45 +671,109 @@ def _extract_primary_slot_hint(text: str, state: ProfileState) -> str | None:
         ("owner", "owners"),
         # S4 financials
         ("security deposit", "security_deposit_type"),
-        ("cleaning fee", "mandatory_fees"),
+        ("damage waiver", "security_deposit_amount"),
+        ("deposit amount", "security_deposit_amount"),
+        ("deposit of", "security_deposit_amount"),
+        # Note: "cleaning fee" is deliberately absent — per-listing concept, not a
+        # session-level mandatory fee slot. Its presence in explanatory text would
+        # shadow the slot hint when the agent clarifies why cleaning fees live on the
+        # listing, causing primary_slot=None and triggering the unknown_slot loop.
         ("additional fee", "mandatory_fees"),
+        ("mandatory fee", "mandatory_fees"),
+        ("resort fee", "mandatory_fees"),
+        ("pet fee", "mandatory_fees"),
+        ("admin fee", "mandatory_fees"),
+        ("administration fee", "mandatory_fees"),
+        ("per night", "mandatory_fees"),
+        ("per stay", "mandatory_fees"),
+        ("any fee", "mandatory_fees"),
+        ("fees to guest", "mandatory_fees"),
+        ("charge a", "mandatory_fees"),
+        ("charge guest", "mandatory_fees"),
+        ("fee do you", "mandatory_fees"),
         ("tax", "taxes"),
         ("payment", "payment_timing"),
         ("revenue recognition", "revenue_recognition"),
+        ("recognize revenue", "revenue_recognition"),
         ("non-refundable", "non_refundable_enabled"),
         ("nonrefundable", "non_refundable_enabled"),
         # S2 pre-flight
         ("listing", "listing_count"),
         ("channel", "channels"),
         ("go live", "go_live"),
+        ("go-live", "go_live"),
         ("timeline", "go_live"),
+        ("launch date", "go_live"),
+        ("start date", "go_live"),
         # S7 focus
         ("focus", "focus_topics"),
         ("priority", "focus_topics"),
+        ("highest priority", "focus_topics"),
+        ("most important", "focus_topics"),
+        ("pricing strategy", "focus_topics"),
+        ("channel mix", "focus_topics"),
+        ("guest messaging", "focus_topics"),
+        ("cleaner workflow", "focus_topics"),
+        ("accounting setup", "focus_topics"),
+        ("owner reporting", "focus_topics"),
+        ("reviews", "focus_topics"),
         ("pain", "pain"),
         ("biggest challenge", "pain"),
+        ("main challenge", "pain"),
+        ("frustrat", "pain"),
+        ("struggle", "pain"),
+        ("difficulty", "pain"),
+        ("taking too much", "pain"),
+        ("time-consuming", "pain"),
+        ("what's been hard", "pain"),
+        ("what has been hard", "pain"),
+        ("manual process", "pain"),
         # S8 ownership
         ("ownership", "ownership_model"),
         ("self-owned", "ownership_model"),
         ("managed for", "ownership_model"),
+        ("manage on behalf", "ownership_model"),
+        ("other people's", "ownership_model"),
+        ("other owners", "ownership_model"),
         ("mixed", "ownership_model"),
+        ("own all", "ownership_model"),
+        ("all your own", "ownership_model"),
         ("rate strategy", "rate_strategy"),
-        ("pricing tool", "rate_strategy"),
+        ("dynamic pricing", "rate_strategy"),
+        ("seasonal pricing", "rate_strategy"),
+        ("adjust.*rate", "rate_strategy"),
         # S5 booking website
         ("website", "website_brand_name"),
         ("direct booking", "website_brand_name"),
         ("booking site", "website_brand_name"),
+        ("direct reservation", "website_brand_name"),
+        ("your site", "website_brand_name"),
         # S6 governance
         ("decision", "decision_owner"),
+        ("who makes", "decision_owner"),
+        ("manage alone", "decision_owner"),
+        ("sole decision", "decision_owner"),
+        ("by yourself", "decision_owner"),
+        ("on your own", "decision_owner"),
+        ("team member", "teammates"),
+        ("colleague", "teammates"),
         ("teammate", "teammates"),
+        ("staff", "teammates"),
+        ("anyone else", "teammates"),
+        ("other users", "teammates"),
+        ("other people", "teammates"),
         # S3 operations
+        ("cleaning system", "cleaning_system"),
+        ("cleaning team", "cleaning_system"),
+        ("cleaning company", "cleaning_system"),
+        ("turnover checklist", "turnover_checklist_choice"),
+        ("checklist", "turnover_checklist_choice"),
+        ("task list", "turnover_checklist_choice"),
         ("cleaning", "cleaning_system"),
         ("lock", "smart_locks"),
-        # S0b
-        ("prior system", "migration_source"),
-        ("previous pms", "migration_source"),
-        ("coming from", "migration_source"),
-        ("language", "ob_language"),
+        ("smart lock", "smart_locks"),
+        ("keyless", "smart_locks"),
+        ("key access", "smart_locks"),
     ]
 
     for phrase, slot_id in _HINT_MAP:

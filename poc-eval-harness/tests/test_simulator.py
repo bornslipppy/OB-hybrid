@@ -33,7 +33,7 @@ A1_FACTS = {
     "security_deposit_type": "damage_waiver",
     "security_deposit_amount": 50,
     "payment_timing": "at_booking",
-    "mandatory_fees": [{"name": "cleaning_fee", "amount": 85}],
+    "mandatory_fees": [],
     "focus_topics": ["pricing_strategy", "guest_messaging"],
     "pain": "Manual pricing takes too much time.",
     "website_brand_name": "Harbor Point Stays",
@@ -219,6 +219,39 @@ class TestGroupAScriptedReplies:
         reply = sim.reply(q)
         # A2 has None override for website_brand_name → not applicable
         assert reply  # should not crash; return "not applicable" reply
+
+    def test_mandatory_fees_a1_returns_no_account_level_fees(self, a1_spec):
+        """Regression: A1 mandatory_fees reply must NOT mention a resort fee or any dollar amount.
+
+        Previously the slot was missing from group-a.yaml, causing unknown_slot fallback
+        ("I'm not sure exactly what you're asking. Can you rephrase?"). The agent then
+        hallucinated a $25 resort fee, echoed it, and looped waiting for confirmation that
+        never came because each re-ask of mandatory_fees returned the fallback again.
+        """
+        sim = UserSimulator(a1_spec)
+        q = UserQuestion(text="Do you charge any mandatory fees to guests?", primary_slot="mandatory_fees")
+        reply = sim.reply(q)
+        lower = reply.lower()
+        assert reply, "mandatory_fees reply must be non-empty"
+        assert "rephrase" not in lower, (
+            "mandatory_fees must not fall through to unknown_slot; add it to group-a.yaml"
+        )
+        assert "$" not in reply and "resort" not in lower, (
+            "A1 has no account-level mandatory fees — reply must not fabricate a resort fee"
+        )
+        # The reply should communicate that cleaning fees are per-listing, not account-level
+        assert "cleaning" in lower or "listing" in lower or "no" in lower or "nothing" in lower, (
+            "A1 mandatory_fees reply should clarify there are no account-level fees"
+        )
+
+    def test_mandatory_fees_more_returns_closure(self, a1_spec):
+        """After confirming no more fees, simulator must return a closing reply, not unknown_slot."""
+        sim = UserSimulator(a1_spec)
+        q = UserQuestion(text="Any other fees to add?", primary_slot="mandatory_fees_more")
+        reply = sim.reply(q)
+        lower = reply.lower()
+        assert reply, "mandatory_fees_more reply must be non-empty"
+        assert "rephrase" not in lower, "mandatory_fees_more must not hit unknown_slot fallback"
 
 
 # ---------------------------------------------------------------------------

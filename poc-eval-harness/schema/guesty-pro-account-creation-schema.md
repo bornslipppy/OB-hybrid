@@ -28,6 +28,9 @@ companion_2: "sales-handover-notes-corpus-analysis-2026-06-02.md"
 > **Synthetic.** Field names, enums, and entity mappings are reconstructed from the supplied
 > artifacts and the Guesty entity model. They approximate the real product closely enough to
 > drive a PoC but must be validated against production before any build.
+>
+> **Stakeholder summary:** For a plain-language overview of what this profile contains, see
+> [guesty-pro-account-creation-schema-stakeholder-summary.md](../../docs/planning-artifacts/guesty-pro-account-creation-schema-stakeholder-summary.md).
 
 ---
 

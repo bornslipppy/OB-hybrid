@@ -14,5 +14,9 @@ _bmad*/
 # PoC harness — Python virtualenv (machine-generated, never formatted)
 poc-eval-harness/.venv/
 
+# PoC harness — eval run outputs (gitignored; local-only)
+poc-eval-harness/campaigns/
+poc-eval-harness/runs/
+
 # Guesty working documents (pre-existing, not framework artifacts)
 docs/inbox-v2-documentation/

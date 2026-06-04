@@ -1,0 +1,74 @@
+{
+  "_comment": "SCORED profile C1 — Group C complex portfolio. Four owners, four distinct management models, one legitimate deferral; direct channel → S5 surfaces. Serialized verbatim from docs/planning-artifacts/poc-respondent-specs-2026-06-02.md (v1.2-frozen) §Group C / C1.",
+  "profile_id": "C1",
+  "group": "C",
+  "tuning_only": false,
+  "facts": {
+    "business_name": "Alpine Property Group",
+    "location": "Lake Tahoe, CA/NV",
+    "listing_count": 12,
+    "listing_breakdown": "1 self-owned + 11 managed",
+    "channels": ["airbnb", "vrbo", "direct"],
+    "ownership_model": "mixed",
+    "owners": [
+      {
+        "owner_name": "Sarah Mitchell",
+        "email": "sarah@mitchell-tahoe.com",
+        "listings": 3,
+        "management_model": "commission",
+        "pmc_commission_rate": 20,
+        "who_pays_channel_commission": "owner",
+        "note": "20% commission of gross revenue; confirm gross-vs-net basis"
+      },
+      {
+        "owner_name": "James Park",
+        "email": "james@parkventures.co",
+        "listings": 2,
+        "management_model": "flat_fee",
+        "fixed_fee_amount": 500,
+        "fee_per": "per_listing_per_month"
+      },
+      {
+        "owner_name": "Claudia Reyes",
+        "email": "claudia@reyes-properties.com",
+        "listings": 4,
+        "management_model": "revenue_split",
+        "split_terms": "Owner receives 70% of revenue after OTA/channel fees; PMC retains 30%",
+        "who_pays_channel_commission": "owner"
+      },
+      {
+        "owner_name": "Marcus Webb",
+        "email": "marcus@webbinv.net",
+        "listings": 2,
+        "management_model": "deferred",
+        "note": "'we have something in place but I'd rather work it out with your team'"
+      }
+    ],
+    "self_owned_listings": 1,
+    "revenue_recognition": "checkin",
+    "non_refundable_enabled": true,
+    "non_refundable_scope": "listings 1-3 (Sarah's properties) only",
+    "security_deposit_type": "damage_waiver",
+    "security_deposit_amount": 100,
+    "security_deposit_scope": "all managed listings",
+    "payment_timing": "Full at booking (OTA) or 50/50 for direct",
+    "taxes": [
+      { "tax_type": "sales_tax", "rate": 9.25, "jurisdiction": "California" },
+      { "tax_type": "occupancy_tax", "rate": 10, "jurisdiction": "El Dorado/Placer County TOT" }
+    ],
+    "teammates": [{ "role": "cleaner", "count": 2, "listing_scope": "property-scoped", "access": "limited" }],
+    "focus_topics": ["owner_reporting", "pricing_strategy"],
+    "pain": "I have four different deal structures and I'm managing them in a Google spreadsheet."
+  },
+  "persona": "Knowledgeable, speaks in property management terms. When the agent asks about owners, provides all four in a single pass: 'I have four owners — Sarah Mitchell handles three cabins on a 20% commission, James Park has two units on a $500 flat monthly per unit, Claudia Reyes has four and we do a 70/30 split where she keeps 70 after channel fees, and Marcus Webb has two but we're still working out his arrangement.' Cooperative for 3 out of 4 owners; deflects on Marcus (legitimate deferral). Confirms echo-backs line by line.",
+  "answer_key": {
+    "ownership_model": "recorded:mixed",
+    "owners": "recorded:4_owners",
+    "non_refundable_enabled": "recorded:true",
+    "taxes": "flagged",
+    "security_deposit_type": "recorded:damage_waiver",
+    "security_deposit_amount": "recorded:100",
+    "website_brand_name": "conditional:surface_if_direct_signals"
+  },
+  "_note": "S5 SURFACES (direct channel present) — represented as the conditional default. owners aggregate recorded:4_owners; per-owner: Sarah 20% commission, James $500 flat, Claudia 70/30 split, Marcus deferred (management_model skipped) — clear three recorded + all flag_for_call_1. non_refundable_enabled recorded:true + flag_for_call_1 (Sarah's 3 listings only). security_deposit $100 maps to security_deposit_type (damage_waiver), not mandatory_fees. KEY EVAL CRITERION: fan out to all four owners without conflation; accept Marcus's deferral; one coherent flag_for_call_1 summary. Spec C1 answer key is partial (hero/financials slots); teammates (2 cleaners) present in facts but absent from the scored answer key."
+}
