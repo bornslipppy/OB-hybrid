@@ -817,6 +817,18 @@
     const leadContent = personalLead(screen, answers);
     const showPersonalLead = !showPriorityCallout && !!leadContent;
 
+    // One Amanda bubble per page: fold the priority callout / personal lead AND
+    // the screen's own framing note (screen.lead) into a single box, instead of
+    // stacking two separate Amanda bubbles.
+    const screenLead = typeof screen.lead === "function" ? screen.lead(answers) : screen.lead;
+    const leadNodes = [];
+    if (showPriorityCallout) {
+      leadNodes.push(<>Your sales call flagged <strong>{promotedPhrase}</strong> as a priority, so I've moved it up front.</>);
+    } else if (showPersonalLead) {
+      leadNodes.push(leadContent);
+    }
+    if (screenLead) leadNodes.push(screenLead);
+
     return (
       <div className="wiz-panel">
       <div className="wiz-panel-scroll">
@@ -825,17 +837,11 @@
             key={phaseIdx}
             style={isWide ? { maxWidth: wideMaxWidth } : undefined}>
 
-          {showPriorityCallout && (
+          {leadNodes.length > 0 && (
             <window.AmandaBubble compact name={specialist} style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 13.5, lineHeight: 1.45 }}>
-                Your sales call flagged <strong>{promotedPhrase}</strong> as a priority, so I've moved it up front.
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13.5, lineHeight: 1.45 }}>
+                {leadNodes.map((node, i) => <div key={i}>{node}</div>)}
               </div>
-            </window.AmandaBubble>
-          )}
-
-          {showPersonalLead && (
-            <window.AmandaBubble compact name={specialist} style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 13.5, lineHeight: 1.45 }}>{leadContent}</div>
             </window.AmandaBubble>
           )}
 

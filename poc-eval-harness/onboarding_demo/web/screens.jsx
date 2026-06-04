@@ -42,6 +42,42 @@ window.SF_PREFILL = Object.assign({}, SF_PREFILL, __obSession.sf_prefill || {});
 window.CSM_NAME = __obSession.csm_name || CSM_NAME;
 window.OB_CONTEXT = __obSession.ob_context || window.OB_CONTEXT || null;
 
+// Adaptive-title helpers: let a question's <h1> reference note-derived context
+// (e.g. the prior PMS the customer is migrating from) instead of a static string.
+// Mirrors context_api._MIGRATION_LABELS; falls back to a Title-cased slug.
+var _MIGRATION_LABELS = {
+  hostaway: "Hostaway", lodgify: "Lodgify", smoobu: "Smoobu", avantio: "Avantio",
+  hostfully: "Hostfully", uplisting: "Uplisting", streamline: "Streamline",
+  ownerrez: "OwnerRez", hospitable: "Hospitable", guesty_lite: "Guesty Lite",
+  guesty_for_hosts: "Guesty for Hosts",
+};
+function migrationLabel(answers) {
+  if (answers && answers.intro_migration_label) return answers.intro_migration_label;
+  var src = window.OB_CONTEXT && window.OB_CONTEXT.prefill && window.OB_CONTEXT.prefill.migration_source;
+  if (!src) return null;
+  return _MIGRATION_LABELS[src] || (src.charAt(0).toUpperCase() + src.slice(1));
+}
+function notePrefill(key) {
+  return (window.OB_CONTEXT && window.OB_CONTEXT.prefill && window.OB_CONTEXT.prefill[key]) || null;
+}
+var _FOCUS_LABELS = {
+  owner_reporting: "owner reporting", pricing_strategy: "pricing strategy",
+  guest_messaging: "guest messaging", cleaner_workflows: "cleaner workflows",
+  accounting_setup: "accounting", booking_website: "a direct booking site",
+  reviews_reputation: "reviews & reputation", channel_mix: "channel mix",
+};
+function focusList() {
+  return (notePrefill("focus_topics") || []).map(function (f) { return _FOCUS_LABELS[f] || f; }).filter(Boolean);
+}
+function hasFocus(topic) {
+  return (notePrefill("focus_topics") || []).indexOf(topic) >= 0;
+}
+// third_party_tools is grouped by category: { pms_or_pricing: ["PriceLabs"], cleaning: ["Turno"], locks: ["RemoteLock"] }
+function thirdPartyTool(category) {
+  var t = notePrefill("third_party_tools");
+  return (t && t[category] && t[category][0]) || null;
+}
+
 /* ---- SkeletonImg — shimmer placeholder while a local asset loads ---- */
 function SkeletonImg({ src, alt, className, style, wrapStyle, onLoad: onLoadProp, ...rest }) {
   const [loaded, setLoaded] = useState(false);
@@ -2206,10 +2242,11 @@ function makeScreens() { return [
   anchor: false, canvas: null,
   render: ({ answers, set }) => {
     const editing = answers.__editing_count;
+    const mig = migrationLabel(answers);
     return (
       <>
         <QMeta section="2" sectionName="Portfolio & Channels" qIndex={1} qTotal={7} />
-        <h1 className="q-title">How many active listings do you have?</h1>
+        <h1 className="q-title">{mig ? `How many active listings are you bringing over from ${mig}?` : "How many active listings do you have?"}</h1>
         <p className="q-help">We pulled this from your sales call. Confirm or update it before we connect Airbnb.</p>
         {!editing ? (
           <div style={{
@@ -2404,9 +2441,9 @@ function makeScreens() { return [
       <>
         <QMeta section={2} sectionName="Portfolio & Channels" qIndex={7} qTotal={7} />
         <BotAlert>
-          <div>Your Airbnb data is in. Now we'll set up Guesty to match how you work.</div>
+          <div>{answers.oauth_status === "success" ? "Your Airbnb data is in. Now we'll set up Guesty to match how you work." : "Now we'll set up Guesty to match how you work."}</div>
         </BotAlert>
-        <h1 className="q-title">When do you want to go live with Guesty?</h1>
+        <h1 className="q-title">{notePrefill("go_live") ? "You mentioned a timeline on your call — when do you want to go live?" : "When do you want to go live with Guesty?"}</h1>
         <p className="q-help">This sets the pace for your onboarding calls — you can change it later.</p>
         <div className="opt-list">
           <Option k="1" label="Within 2 weeks" selected={answers.go_live === "asap"} onSelect={() => set({ go_live: "asap", go_live_date: undefined })} />
@@ -2584,13 +2621,15 @@ function makeScreens() { return [
 {
   id: "Q3.1", section: 4, sectionName: "Financials", qIndex: 1, qTotal: 5,
   anchor: false, canvas: null,
+  lead: () => (
+    <>
+      <div>These choices shape how Guesty reports your earnings. Pick what matches your accountant's books.</div>
+      <div style={{ marginTop: 6 }}>Guesty Pay / payment processing is handled later in onboarding, not here.</div>
+    </>
+  ),
   render: ({ answers, set }) => (
     <>
       <QMeta section={4} sectionName="Financials" qIndex={1} qTotal={5} />
-      <BotAlert>
-        <div>These choices shape how Guesty reports your earnings. Pick what matches your accountant's books.</div>
-        <div>Guesty Pay / payment processing is handled later in onboarding, not here.</div>
-      </BotAlert>
       <h1 className="q-title">When do you count revenue from a reservation?</h1>
       <div className="opt-list">
         <Option k="1" label="Check-in date" hint="Default — report for March counts reservations checking in during March." selected={answers.revenue_recognition === "checkin"} onSelect={() => set("revenue_recognition", "checkin")} />
@@ -2757,7 +2796,7 @@ function makeScreens() { return [
   render: ({ answers, set }) => (
     <>
       <QMeta section={5} sectionName="Owners" qIndex={1} qTotal={3} />
-      <h1 className="q-title">Do you work with owners?</h1>
+      <h1 className="q-title">{hasFocus("owner_reporting") ? "Owner reporting was on your list — do you work with property owners?" : "Do you work with owners?"}</h1>
       <div className="opt-list">
         <Option k="1" label="Yes, all my listings have owners" selected={answers.owners_gate === "all"} onSelect={() => set({ owners_gate: "all", owner_listings: undefined })} />
         <Option k="2" label="Yes, some of my listings have owners" selected={answers.owners_gate === "some"} onSelect={() => set("owners_gate", "some")} />
@@ -2873,16 +2912,19 @@ function makeScreens() { return [
 {
   id: "Q6.pricing_tool", section: 6, sectionName: "Rate strategy", qIndex: 1, qTotal: 2,
   anchor: false, canvas: null,
-  render: ({ answers, set }) => (
+  render: ({ answers, set }) => {
+    const pl = thirdPartyTool("pms_or_pricing");
+    return (
     <>
       <QMeta section={6} sectionName="Rate strategy" qIndex={1} qTotal={2} />
-      <h1 className="q-title">Are you using a pricing tool?</h1>
+      <h1 className="q-title">{pl ? `You mentioned ${pl} on your call — are you still using it for pricing?` : "Are you using a pricing tool?"}</h1>
       <div className="opt-list">
         <Option k="1" label="Yes" selected={answers.pricing_tool === "yes"} onSelect={() => set({ pricing_tool: "yes", low_season_start: undefined, low_season_end: undefined, high_season_start: undefined, high_season_end: undefined })} />
         <Option k="2" label="No" selected={answers.pricing_tool === "no"} onSelect={() => set({ pricing_tool: "no", pricing_tool_name: undefined, low_season_start: undefined, low_season_end: undefined, high_season_start: undefined, high_season_end: undefined })} />
       </div>
     </>
-  ),
+    );
+  },
   valid: () => true,
   primaryLabel: () => "Continue",
 },
@@ -3062,7 +3104,7 @@ function makeScreens() { return [
     return (
       <>
         <QMeta section={8} sectionName="Focus & context" qIndex={1} qTotal={2} />
-        <h1 className="q-title">What do you want to dig into on your first onboarding call?</h1>
+        <h1 className="q-title">{focusList()[0] ? `You flagged ${focusList()[0]} — what do you want to dig into on your first call?` : "What do you want to dig into on your first onboarding call?"}</h1>
         <InlineBot>Pick up to three. Your CSM will lead with these.</InlineBot>
         <div style={{display:"grid", gridTemplateColumns:"repeat(2, 1fr)", gap:12}}>
           {all.map(t => {
