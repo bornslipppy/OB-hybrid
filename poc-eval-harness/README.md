@@ -30,7 +30,7 @@ cp .env.example .env
 
 **Handover notes (PII):** Export stays on your machine (`~/Downloads`, `poc-eval-harness/data/`, or `SALES_NOTES_XLSX`). The repo `.gitignore` blocks `*.xlsx` and raw notes by design (NFR-3).
 
-**Campaign outputs:** `poc-eval-harness/campaigns/` is gitignored (large local eval artifacts). Re-run the harness to regenerate on a new machine.
+**Campaign outputs:** `poc-eval-harness/campaigns/` holds frozen eval manifests, run records, and traces (tracked on private **ob-brain**). Re-run `uv run python -m harness` to add new campaigns locally.
 
 Install Python deps:
 
