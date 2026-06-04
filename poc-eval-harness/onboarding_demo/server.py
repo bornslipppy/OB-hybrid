@@ -150,8 +150,11 @@ def main() -> None:
         port = int(sys.argv[1])
     else:
         port = int(os.environ.get("PORT", "5173"))
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"OB-V2 x Brain demo: http://127.0.0.1:{port}")
+    # Bind to all interfaces when hosted (PaaS health checks hit the container's
+    # external IP); default to loopback for local dev.
+    host = os.environ.get("HOST", "0.0.0.0" if os.environ.get("PORT") else "127.0.0.1")
+    httpd = ThreadingHTTPServer((host, port), Handler)
+    print(f"OB-V2 x Brain demo: http://{host}:{port}")
     print(f"  serving frontend from {_WEB_DIR}")
     try:
         httpd.serve_forever()

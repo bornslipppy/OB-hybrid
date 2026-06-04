@@ -135,6 +135,12 @@ def resolve_notes_path(explicit: str | Path | None = None) -> Path | None:
     if data_dir.is_dir():
         candidates.extend(sorted(data_dir.glob("*.xlsx"), key=lambda p: p.stat().st_mtime, reverse=True))
 
+    # Last resort: the committed synthetic workbook. Lets a hosted deploy run
+    # with zero config and no PII present — the real export (env / Downloads /
+    # data dir) always takes precedence above.
+    sample = Path(__file__).resolve().parent.parent / "onboarding_demo" / "sample-accounts.xlsx"
+    candidates.append(sample)
+
     seen: set[str] = set()
     for path in candidates:
         key = str(path.resolve())
