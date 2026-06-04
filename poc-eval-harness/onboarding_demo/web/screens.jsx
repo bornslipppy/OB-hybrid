@@ -451,6 +451,15 @@ function CanvasAHA({ importedCount }) {
 }
 
 function CanvasMilestone() {
+  const plan = window.OB_adaptivePlan ? window.OB_adaptivePlan() : { order: [1, 2, 3, 4, 5, 6, 7, 8] };
+  const names = window.OB_sectionNames || {};
+  const order = plan.order;
+  const finIdx = order.indexOf(4);
+  const doneCount = finIdx >= 0 ? finIdx : 0;
+  const lastDone = doneCount ? (names[order[doneCount - 1]] || "your last section") : "";
+  const subtitle = doneCount
+    ? `${lastDone} ${doneCount === 1 ? "is" : "and the sections before it are"} set. Financials next, then a few short sections after that.`
+    : "Financials next, then a few short sections after that.";
   return (
     <div className="wiz-canvas-inner" style={{justifyContent:"center"}}>
       <div className="milestone-card">
@@ -535,15 +544,11 @@ function CanvasMilestone() {
               Milestone
             </span>
             <h2>You're halfway through.</h2>
-            <p>Listings and operations are set. Financials next, then a few short sections after that.</p>
+            <p>{subtitle}</p>
             <div className="milestone-bar">
-              <div className="seg done"></div>
-              <div className="seg done"></div>
-              <div className="seg now"></div>
-              <div className="seg"></div>
-              <div className="seg"></div>
-              <div className="seg"></div>
-              <div className="seg"></div>
+              {order.map((sec, i) => (
+                <div key={sec} className={"seg" + (i < doneCount ? " done" : i === doneCount ? " now" : "")}></div>
+              ))}
             </div>
           </div>
         </div>

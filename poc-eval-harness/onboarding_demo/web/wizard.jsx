@@ -13,15 +13,83 @@
   // Shared Call 1 date — used by header countdown ticker and NextCallSection
   const CALL_TIME = new Date("2026-06-18T11:00:00-07:00");
 
+  /* ============ Adaptive section ordering ============ */
+  // The sales-notes "brain" surfaces what the manager cares about (focus topics,
+  // add-on intent). We use that to reorder the *preference* sections so the most
+  // relevant ones come first — while Brand (1) and Portfolio & Channels (2, which
+  // holds the only real action: the view-only Airbnb pre-connect) stay anchored at
+  // the front. `showIf` remains the hard safety gate; this only permutes whole
+  // sections among themselves. With no signal, the canonical order is preserved.
+  const ANCHOR_SECTIONS = [1, 2];
+  const REORDERABLE_SECTIONS = [3, 4, 5, 6, 7, 8];
+  // section number -> display name, taken from the screens themselves.
+  const SECTION_NAMES = {};
+  SCREENS.forEach((s) => { if (s.section && !SECTION_NAMES[s.section]) SECTION_NAMES[s.section] = s.sectionName; });
+  // Note enum -> the section it makes most relevant.
+  const FOCUS_SECTION = {
+    pricing_strategy: 6, owner_reporting: 5, cleaner_workflows: 3, guest_messaging: 3,
+    accounting_setup: 4, booking_website: 7, reviews_reputation: 3, channel_mix: 2,
+  };
+  const ADDON_SECTION = {
+    gpo: 6, accounting: 4, guestypay: 4, locks: 3, auto_comply: 7, damage_protection: 7,
+  };
+  // Human phrase for the "let's start here" callout, keyed by the promoting signal.
+  const FOCUS_PHRASE = {
+    pricing_strategy: "pricing strategy", owner_reporting: "owner reporting",
+    cleaner_workflows: "cleaner workflows", guest_messaging: "guest messaging",
+    accounting_setup: "accounting setup", booking_website: "a direct booking site",
+    reviews_reputation: "reviews & reputation", channel_mix: "your channel mix",
+  };
+  const ADDON_PHRASE = {
+    gpo: "dynamic pricing", accounting: "accounting", guestypay: "payments",
+    locks: "smart locks", auto_comply: "compliance", damage_protection: "damage protection",
+  };
+
+  let _planCache;
+  function adaptivePlan() {
+    if (_planCache) return _planCache;
+    const prefill = (window.OB_CONTEXT && window.OB_CONTEXT.prefill) || {};
+    const promoted = [];
+    const reason = {};
+    const add = (sec, phrase) => {
+      if (!REORDERABLE_SECTIONS.includes(sec) || promoted.includes(sec)) return;
+      promoted.push(sec);
+      reason[sec] = phrase;
+    };
+    (prefill.focus_topics || []).forEach((t) => { if (FOCUS_SECTION[t]) add(FOCUS_SECTION[t], FOCUS_PHRASE[t] || t); });
+    (prefill.addon_intent || []).forEach((a) => { if (ADDON_SECTION[a]) add(ADDON_SECTION[a], ADDON_PHRASE[a] || a); });
+    const rest = REORDERABLE_SECTIONS.filter((s) => !promoted.includes(s));
+    _planCache = { order: [...ANCHOR_SECTIONS, ...promoted, ...rest], reason, promoted };
+    return _planCache;
+  }
+  // 0-based position of a section in the adaptive order (for monotonic progress).
+  function adaptivePosition(section) {
+    const idx = adaptivePlan().order.indexOf(section);
+    return idx >= 0 ? idx : (section - 1);
+  }
+  // Expose for the canvas-side milestone panel, which lives in screens.jsx.
+  window.OB_adaptivePlan = adaptivePlan;
+  window.OB_sectionNames = SECTION_NAMES;
+
   /* ============ Phase model ============ */
   function buildPhases(answers) {
     const phases = [];
     // S0 — welcome (always first; not counted in section 1–8 progress)
     phases.push({ type: "welcome" });
-    const screens = SCREENS.filter((s) => !s.showIf || s.showIf(answers));
+    const eligible = SCREENS.filter((s) => !s.showIf || s.showIf(answers));
+    // Regroup eligible screens by the adaptive section order, preserving each
+    // section's canonical within-order. Any section not named in the plan (should
+    // not happen) falls through at the end so no screen is ever dropped.
+    const order = adaptivePlan().order;
+    const rank = new Map(order.map((sec, i) => [sec, i]));
+    const screens = eligible.slice().sort((a, b) => {
+      const ra = rank.has(a.section) ? rank.get(a.section) : 99;
+      const rb = rank.has(b.section) ? rank.get(b.section) : 99;
+      return ra - rb; // stable sort keeps within-section canonical order
+    });
     let lastSection = 0;
     for (const s of screens) {
-      // Mid-funnel milestone before first Section 3 question
+      // Mid-funnel milestone travels with Financials (section 4) wherever it lands.
       if (s.section === 4 && lastSection !== 4) {
         phases.push({ type: "milestone", section: 4 });
       }
@@ -338,15 +406,16 @@
     const progressPct = useMemo(() => {
       if (!current || current.type === "setup" || current.type === "done") return 100;
       if (current.type === "review") return 93;
-      if (current.type === "milestone") return Math.round(3 / 8 * 90); // before first Financials (section 4)
+      if (current.type === "milestone") return Math.round(adaptivePosition(4) / 8 * 90); // before Financials, wherever it lands
       if (current.type === "question") {
         const s = current.screen;
         // Dynamic: position among the *active* (showIf-passing) screens in this section,
         // so conditional standalone pages slot in smoothly with no stall or leap.
+        // sectionFrac uses the adaptive position so reordered sections still climb monotonically.
         const sectionScreens = phases.filter(p => p.type === "question" && p.screen.section === s.section);
         const pos = Math.max(0, sectionScreens.findIndex(p => p.screen.id === s.id));
         const total = Math.max(sectionScreens.length, 1);
-        const sectionFrac = (s.section - 1) / 8;
+        const sectionFrac = adaptivePosition(s.section) / 8;
         const withinFrac = pos / total / 8;
         return Math.round((sectionFrac + withinFrac) * 90);
       }
@@ -476,7 +545,7 @@
     if (current.type === "done") return "You're set up";
     const s = current.screen;
     if (s.subStepLabel) return s.subStepLabel;
-    return `Section ${s.section} of 8 · ${s.sectionName}`;
+    return `Section ${adaptivePosition(s.section) + 1} of 8 · ${s.sectionName}`;
   }
 
   function sectionOfEight(current) {
@@ -702,6 +771,13 @@
     const visibleQTotal = sectionScreens.length || screen.qTotal;
     const qMetaValue = { visibleQIndex, visibleQTotal };
 
+    // "Surface priorities early" — when the sales notes promoted this section, show
+    // an Amanda note on the section's first question explaining why it's up front.
+    const promotedPhrase = adaptivePlan().reason[screen.section];
+    const isFirstInSection = sectionScreens.length > 0 && sectionScreens[0].id === screen.id;
+    const showPriorityCallout = isFirstInSection && !!promotedPhrase;
+    const specialist = (window.OB_CONTEXT && window.OB_CONTEXT.specialist) || CSM_NAME || "Amanda";
+
     return (
       <div className="wiz-panel">
       <div className="wiz-panel-scroll">
@@ -709,7 +785,24 @@
             className={"wiz-panel-inner " + slideClass + (isAha ? " wiz-panel-inner--aha" : "")}
             key={phaseIdx}
             style={isWide ? { maxWidth: wideMaxWidth } : undefined}>
-            
+
+          {showPriorityCallout && (
+            <div style={{
+              display: "flex", gap: 10, alignItems: "flex-start",
+              padding: "10px 14px", marginBottom: 18, borderRadius: 10,
+              background: "hsl(var(--gst-primary) / 0.06)",
+              border: "1px solid hsl(var(--gst-primary) / 0.18)",
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--gst-primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 2, flexShrink: 0 }}>
+                <path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6z" />
+              </svg>
+              <div style={{ fontSize: 13.5, lineHeight: 1.45, color: "hsl(var(--gst-foreground))" }}>
+                <strong style={{ color: "hsl(var(--gst-primary))" }}>{specialist}:</strong>{" "}
+                Your sales call flagged <strong>{promotedPhrase}</strong> as a priority, so I've moved it up front.
+              </div>
+            </div>
+          )}
+
           <QMetaContext.Provider value={qMetaValue}>
           {screen.render({ answers, set, oauthState, doOAuth })}
           </QMetaContext.Provider>
@@ -903,6 +996,18 @@
     const deferFin = !!(ctx && ctx.flags && ctx.flags.defer_financials);
     const csmName = window.CSM_NAME || "your specialist";
     const repFirst = ctx && ctx.rep ? String(ctx.rep).trim().split(/\s+/)[0] : "";
+
+    const order = adaptivePlan().order;
+    const finIdx = order.indexOf(4);
+    const done = finIdx >= 0 ? order.slice(0, finIdx) : order.slice();
+    const after = finIdx >= 0 ? order.slice(finIdx + 1) : [];
+    const doneCount = done.length;
+    const doneLabel = doneCount + " section" + (doneCount === 1 ? "" : "s") + " complete";
+    const lastDoneName = doneCount ? (SECTION_NAMES[done[doneCount - 1]] || "your last section") : "";
+    const subtitle = doneCount
+      ? <>{lastDoneName} {doneCount === 1 ? "is" : "and the sections before it are"} set.{" "}</>
+      : <>You're off to a strong start.{" "}</>;
+
     return (
       <div className="wiz-panel">
       <div className="wiz-panel-scroll">
@@ -910,20 +1015,23 @@
           <div className="q-meta">
             <span>Milestone</span>
             <span className="dot"></span>
-            <span>2 sections complete</span>
+            <span>{doneLabel}</span>
           </div>
           <h1 className="q-title">Nice work.</h1>
           <p className="q-help">
             {deferFin
-              ? <>Listings and operations are set. {repFirst ? repFirst + " noted" : "Your notes say"} you'd rather walk through taxes &amp; fees live — your call, below.</>
-              : <>Listings and operations are set. Take a breath — we'll move on to financials next.</>}
+              ? <>{subtitle}{repFirst ? repFirst + " noted" : "Your notes say"} you'd rather walk through taxes &amp; fees live — your call, below.</>
+              : <>{subtitle}Take a breath — we'll move on to financials next.</>}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <MilestoneRow icon="✓" label="Section 1 — Pre-flight" done />
-            <MilestoneRow icon="✓" label="Section 2 — Operations" done />
-            <MilestoneRow icon="●" label="Section 3 — Financials" active />
-            <MilestoneRow icon="○" label="Sections 4 to 6 — Governance, focus, business" />
-            <MilestoneRow icon="○" label="Section 7 — Review and confirm" />
+            {done.map((sec) => (
+              <MilestoneRow key={sec} icon="✓" label={"Section " + (adaptivePosition(sec) + 1) + " — " + (SECTION_NAMES[sec] || "")} done />
+            ))}
+            <MilestoneRow icon="●" label={"Section " + (adaptivePosition(4) + 1) + " — Financials"} active />
+            {after.map((sec) => (
+              <MilestoneRow key={sec} icon="○" label={"Section " + (adaptivePosition(sec) + 1) + " — " + (SECTION_NAMES[sec] || "")} />
+            ))}
+            <MilestoneRow icon="○" label="Review and confirm" />
           </div>
           <div className="q-actions" style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <span className="wiz-kb-tip" data-tooltip="Press ↵ Enter">
