@@ -43,6 +43,9 @@ export default [
       'poc-eval-harness/.venv/**',
       '**/venv/**',
       '**/.venv/**',
+      // Demo wizard frontend — browser code transpiled in-browser (Babel
+      // standalone), not part of the Node project's lint ecosystem.
+      'poc-eval-harness/onboarding_demo/web/**',
     ],
   },
 

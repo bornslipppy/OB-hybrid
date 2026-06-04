@@ -12,6 +12,7 @@ ignores:
   - .roo/**
   - .codex/**
   - .kiro/**
+  - .analysis/**
   - sample-project/**
   - test-project-install/**
   - z*/**
