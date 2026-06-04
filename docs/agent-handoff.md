@@ -44,6 +44,20 @@ Research says “adaptive” alone does not justify AI (optimal adaptive ≈ tre
 
 ---
 
+## Tailored UX logic (Salesforce + sales notes)
+
+The stakeholder demo is not a fixed script. For each real account:
+
+1. **Load inputs** — Salesforce row fields (name, listings, channels, owner) plus the Tamar **Notes** cell (`harness/sales_notes.py`).
+2. **Seed prefills** — `seed_account_prefill()` writes known slots as `prefilled_unconfirmed` (migration, add-ons, focus topics, etc.) from `harness/account_context.py`.
+3. **Steer the agent** — `build_demo_prompt_overlay()` tells the model to open by citing the note, confirm prefills before cold questions, prioritize note themes, and ask **one question per turn**.
+4. **Adapt copy and order** — the LLM chooses wording and sequence per account (e.g. Hostaway + GPO first for City and Coastal; defer financials when the note signals tax anxiety). Schema `depends_on` still gates which slots are in scope.
+5. **Record on confirm** — “Yes, still accurate” triggers `apply_demo_auto_confirm()` → `record_answer` for note-derived slots.
+
+**UX principle:** same schema for everyone; **tailor-made conversation** per account. Chat text is not stored as the profile—only tool calls into `ProfileState`.
+
+---
+
 ## How the machine works (critical)
 
 **Chat text is NOT the profile.** Only **seven tool calls** write state:

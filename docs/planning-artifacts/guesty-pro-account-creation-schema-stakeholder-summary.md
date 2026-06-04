@@ -23,6 +23,22 @@ This document explains **what topics the profile covers**, in plain language. It
 
 ---
 
+## Tailored onboarding (Salesforce + sales notes)
+
+Onboarding does not start from a blank questionnaire. **Salesforce** already holds company, listing, and channel basics; the rep’s **sales handover note** adds context (prior PMS, add-ons, language, risks, tone). The AI **reads both**, opens by reflecting what it already knows, and **asks only what is missing or needs confirmation**—in an order that follows that account’s story (note themes and migration first, then ownership and financials when they apply).
+
+Every customer fills the **same profile**; no two conversations need to use the same words or the same question order.
+
+| Generic wizard | Tailored AI flow |
+|----------------|------------------|
+| Same questions in the same order | Order driven by prefills and what the note flags |
+| Cold questions (“What’s your PMS?”) | Confirmations (“Sales noted Hostaway—is that still right?”) |
+| One-size-fits-all copy | Copy uses account name, channels, note themes, and sensible deferrals (e.g. tax anxiety) |
+
+**Logic in one line:** prefill from Salesforce and the note → confirm with the customer → branch on answers → record—never re-ask what we already know.
+
+---
+
 ## How “complete” is defined
 
 | Level | What it means |

@@ -47,7 +47,7 @@ Open the app at [http://localhost:8501](http://localhost:8501).
 
 1. Sales notes load from `poc-eval-harness/data/Notes-for-Tamar-2026-06-02.xlsx` (included in this repo).
 2. Search for an account (e.g. **City and Coastal**).
-3. Click **Start session**.
+3. Click **Start session** — the agent reads Salesforce + the handover note and tailors opening copy and question order to that account (see `docs/planning-artifacts/guesty-pro-account-creation-schema-stakeholder-summary.md` § Tailored onboarding).
 
 Optional override:
 
