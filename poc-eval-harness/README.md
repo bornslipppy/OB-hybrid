@@ -1,7 +1,45 @@
 # PoC Eval Harness
 
 Offline, file-based eval harness for the AI Adaptive Onboarding PoC (H1 + H2).
-See ../docs/planning-artifacts/architecture.md.
+See [architecture.md](../docs/planning-artifacts/architecture.md) and
+[build guide](../docs/planning-artifacts/poc-eval-harness-build-guide.md).
+
+## Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+
+## Environment setup
+
+API keys and local data paths live in a **gitignored** `.env` at the **repo root**
+(`BMAD-METHOD/.env`), not inside this folder.
+
+```bash
+# From the repository root (BMAD-METHOD/)
+cp .env.example .env
+# Edit .env — add your keys only on your machine; never commit .env
+```
+
+| Variable | Required for | Notes |
+|----------|----------------|-------|
+| `GEMINI_API_KEY` | Agent (Gemini path), simulator | Used when `CURSOR_BASE_URL` points at `generativelanguage.googleapis.com` |
+| `CURSOR_BASE_URL` | Agent (OpenAI-compat path) | Gemini demo: `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `CURSOR_API_KEY` | Agent (Cursor/proxy path) | Alternative to Gemini; set `CURSOR_BASE_URL` to your bridge |
+| `ANTHROPIC_API_KEY` | Agent (direct Anthropic) | Omit `CURSOR_BASE_URL` to use native Anthropic SDK |
+| `SALES_NOTES_XLSX` | Streamlit demo (real accounts) | **PII** — absolute path to Tamar export; never commit the file |
+
+**Handover notes (PII):** Export stays on your machine (`~/Downloads`, `poc-eval-harness/data/`, or `SALES_NOTES_XLSX`). The repo `.gitignore` blocks `*.xlsx` and raw notes by design (NFR-3).
+
+**Campaign outputs:** `poc-eval-harness/campaigns/` is gitignored (large local eval artifacts). Re-run the harness to regenerate on a new machine.
+
+Install Python deps:
+
+```bash
+cd poc-eval-harness
+uv sync
+# Streamlit demo also needs:
+uv sync --extra demo
+```
 
 ## Interactive CLI
 
@@ -19,17 +57,28 @@ Real-account mode: load the Tamar Salesforce export and let the agent **confirm 
 
 ```bash
 cd poc-eval-harness
-# Add to .env (file is gitignored — do NOT commit the xlsx; it contains PII):
-# SALES_NOTES_XLSX=/path/to/Notes for Tamar-2026-06-02-13-51-50 (1).xlsx
-
 uv sync --extra demo
 uv run streamlit run harness/demo_app.py
 ```
 
-1. Search for an account (e.g. **City and Coastal**)
-2. Expand **Handover note** to verify the export row
-3. **Start session** — the agent opens with note-aware confirmations
+1. In the sidebar, set **Sales notes path** or ensure `SALES_NOTES_XLSX` in `.env` points at your Tamar `.xlsx`
+2. Search for an account (e.g. **City and Coastal**)
+3. Expand **Handover note** to verify the export row
+4. **Start session** — the agent opens with note-aware confirmations
 
-Without `SALES_NOTES_XLSX`, the demo falls back to synthetic profiles (A1, B1, …).
+Without a workbook path, the demo falls back to synthetic scored profiles (A1, B1, …).
 
-Uses the same `.env` API keys as batch runs (`GEMINI_API_KEY`, OpenAI-compat `CURSOR_BASE_URL`).
+## Batch eval (campaign runner)
+
+```bash
+cd poc-eval-harness
+uv run python -m harness --dry-run    # validate freeze manifest, no API calls
+uv run python -m harness              # agent + tree vs scored profiles
+```
+
+Requires agent + simulator keys per `.env.example`. See `config/run_config.toml` for models and `k` runs.
+
+## Scored profiles
+
+Frozen respondent specs and answer keys: `profiles/scored/A1.json` … `C2.json`.
+Stakeholder-friendly overview: [schema stakeholder summary](../docs/planning-artifacts/guesty-pro-account-creation-schema-stakeholder-summary.md).
