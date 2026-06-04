@@ -81,5 +81,7 @@ uv run python -m harness
 
 ## More context
 
+- **Agent handoff (for other AIs):** [agent-handoff.md](agent-handoff.md)
+- **Gap report:** [ob-brain-gap-report.md](ob-brain-gap-report.md)
 - PoC build guide: `docs/planning-artifacts/poc-eval-harness-build-guide.md`
 - Schema stakeholder summary: `docs/planning-artifacts/guesty-pro-account-creation-schema-stakeholder-summary.md`
