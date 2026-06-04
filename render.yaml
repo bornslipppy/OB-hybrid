@@ -1,0 +1,22 @@
+# Render Blueprint — deploys the OB-hybrid onboarding demo as a free web service.
+# In Render: New > Blueprint > connect this repo. Set GEMINI_API_KEY when prompted
+# (optional — the intro degrades to static greetings without it).
+#
+# The server binds 0.0.0.0 automatically because Render sets $PORT. No real PII
+# export is present on the host; the bundled synthetic sample-accounts.xlsx is
+# resolved as the fallback dataset.
+services:
+  - type: web
+    name: ob-hybrid-demo
+    runtime: python
+    plan: free
+    rootDir: poc-eval-harness
+    # `--extra demo` pulls pandas (a runtime import in harness/sales_notes.py that
+    # otherwise only arrives transitively via the demo group).
+    buildCommand: "pip install uv && uv sync --extra demo"
+    startCommand: "uv run python -m onboarding_demo.server"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: GEMINI_API_KEY
+        sync: false
