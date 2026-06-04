@@ -90,17 +90,43 @@ _CONTACT_LINE = re.compile(
 )
 
 
+_BUSINESS_TOKENS = frozenset({
+    "llc", "inc", "ltd", "co", "corp", "company", "group", "groups",
+    "rentals", "rental", "properties", "property", "homes", "home",
+    "vacations", "vacation", "realty", "services", "service", "guesthouse",
+    "guesthouses", "villa", "villas", "resort", "resorts", "hosts", "hosting",
+    "collection", "concierge", "management", "mgmt", "stays", "retreats",
+    "getaways", "escapes", "lodging", "suites", "hospitality", "estates",
+    "estate", "holdings", "ventures", "partners", "associates", "enterprises",
+    "inn", "lodge", "lodges", "cottages", "cabins", "beachfront", "bnb",
+})
+
+
+def _looks_like_business(name: str) -> bool:
+    """Heuristic: is this account name an organization rather than a person?"""
+    words = name.split()
+    if len(words) >= 3:
+        return True
+    if any(w.strip(".,&").lower() in _BUSINESS_TOKENS for w in words):
+        return True
+    if len(words) >= 2 and name == name.upper():  # e.g. "PELICAN BEACH LLC"
+        return True
+    return False
+
+
 def _first_name(account: SalesAccount) -> str:
-    """Best-effort greeting name from the note's contact line; neutral fallback."""
+    """Greeting name from the note's contact line; empty when only a business name exists."""
     match = _CONTACT_LINE.search(account.notes or "")
     if match:
         token = match.group(1).strip()
         if token.lower() not in {"main", "primary", "the", "for", "ob"}:
             return token
-    head = (account.account_name or "").split()
-    if head and head[0][0].isupper() and head[0].isalpha():
-        return head[0]
-    return "there"
+    name = (account.account_name or "").strip()
+    if name and not _looks_like_business(name):
+        head = name.split()
+        if head[0][0].isupper() and head[0].isalpha():
+            return head[0]
+    return ""
 
 
 def _source_call_date() -> str:
@@ -209,3 +235,15 @@ def session_for(account_name: str, *, notes_path: Any = None) -> dict[str, Any] 
     if account is None:
         return None
     return build_session_context(account)
+
+
+def raw_note_for(account_name: str, *, notes_path: Any = None) -> str | None:
+    """The account's raw handover note (PII). Server-side only — for the egress
+    guard that asserts this text never appears in an API response. Never serialize."""
+    path = notes_path or resolve_notes_path()
+    if path is None:
+        return None
+    account = get_account(path, account_name)
+    if account is None:
+        return None
+    return account.notes or None

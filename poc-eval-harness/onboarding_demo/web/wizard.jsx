@@ -318,6 +318,9 @@
         const tag = document.activeElement?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         if (showConfirm) return;
+        // The conversational welcome drives its own flow — don't let global Enter/Arrow
+        // keys skip past it.
+        if (current?.type === "welcome") return;
 
         // Number keys — select nth option and auto-advance
         if (e.key >= "1" && e.key <= "9") {
@@ -427,7 +430,7 @@
       return current.screen.valid ? current.screen.valid(answers) : true;
     }, [current, answers]);
 
-    const showNavArrows = current?.type !== "setup" && current?.type !== "done";
+    const showNavArrows = current?.type !== "setup" && current?.type !== "done" && current?.type !== "welcome";
 
     // Wizard done in dialog mode: live interactive DonePanel replaces the dialog (§5.3)
     if (wizExited) {
@@ -479,7 +482,11 @@
           </div>
         </div>
         {showNavArrows &&
-          <WizNavArrows canGoBack={canGoBack} onBack={onBack} onForward={onContinue} />
+          <WizNavArrows
+            canGoBack={canGoBack}
+            onBack={onBack}
+            onForward={onContinue}
+            canGoForward={current?.type !== "welcome"} />
         }
         {showConfirm &&
           <ConfirmDialog onCancel={() => setShowConfirm(false)} onConfirm={confirmSetup} />
@@ -748,6 +755,33 @@
   }
 
   /* ============ Question panel ============ */
+  // A few natural, personalized lead-ins: on select screens, open with a line that
+  // references something the user already told us — the intro confirmation or an
+  // earlier answer — so the next question reads like a continuation, not a generic
+  // form field. Returns renderable content or null (null = show nothing).
+  function personalLead(screen, answers) {
+    const id = screen.id;
+    // First portfolio question — bridge straight out of the conversational intro.
+    if (id === "Q1.1" && answers.intro_done) {
+      if (answers.intro_migration_label) {
+        return <>Since you're bringing everything over from <strong>{answers.intro_migration_label}</strong>, let's start by confirming the listings coming with you.</>;
+      }
+      const n = SF_PREFILL.listing_count;
+      if (n) return <>You confirmed <strong>{n} listing{n === 1 ? "" : "s"}</strong> a moment ago — let's make sure we've got them all.</>;
+    }
+    // Wrap-up pain question — tie it back to the focus topic they just picked.
+    if (id === "Q6.2") {
+      const picked = ((answers.focus_topics || [])[0] || answers.intro_focus_label || "").toLowerCase();
+      if (picked) return <>You flagged <strong>{picked}</strong> up top — let's get specific about where it's hurting.</>;
+    }
+    // Owner records upload — reference that they told us they manage for owners.
+    if (id === "Q7.2" && (answers.owners_gate === "all" || answers.owners_gate === "some")) {
+      const word = answers.owners_gate === "all" ? "every listing has an owner" : "some of your listings have owners";
+      return <>Since {word}, a quick upload here saves a lot of manual entry later.</>;
+    }
+    return null;
+  }
+
   function QuestionPanel({ current, answers, set, oauthState, doOAuth, isValid, direction, onContinue, onSkip, phaseIdx }) {
     const screen = current.screen;
     const primaryLabel = screen.primaryLabel ? screen.primaryLabel(answers, oauthState) : "Continue";
@@ -778,6 +812,11 @@
     const showPriorityCallout = isFirstInSection && !!promotedPhrase;
     const specialist = (window.OB_CONTEXT && window.OB_CONTEXT.specialist) || CSM_NAME || "Amanda";
 
+    // Personalized lead-in — only when we're not already showing the priority
+    // callout, so a question never opens with two stacked Amanda bubbles.
+    const leadContent = personalLead(screen, answers);
+    const showPersonalLead = !showPriorityCallout && !!leadContent;
+
     return (
       <div className="wiz-panel">
       <div className="wiz-panel-scroll">
@@ -787,20 +826,17 @@
             style={isWide ? { maxWidth: wideMaxWidth } : undefined}>
 
           {showPriorityCallout && (
-            <div style={{
-              display: "flex", gap: 10, alignItems: "flex-start",
-              padding: "10px 14px", marginBottom: 18, borderRadius: 10,
-              background: "hsl(var(--gst-primary) / 0.06)",
-              border: "1px solid hsl(var(--gst-primary) / 0.18)",
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--gst-primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 2, flexShrink: 0 }}>
-                <path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6z" />
-              </svg>
-              <div style={{ fontSize: 13.5, lineHeight: 1.45, color: "hsl(var(--gst-foreground))" }}>
-                <strong style={{ color: "hsl(var(--gst-primary))" }}>{specialist}:</strong>{" "}
+            <window.AmandaBubble compact name={specialist} style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.45 }}>
                 Your sales call flagged <strong>{promotedPhrase}</strong> as a priority, so I've moved it up front.
               </div>
-            </div>
+            </window.AmandaBubble>
+          )}
+
+          {showPersonalLead && (
+            <window.AmandaBubble compact name={specialist} style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 13.5, lineHeight: 1.45 }}>{leadContent}</div>
+            </window.AmandaBubble>
           )}
 
           <QMetaContext.Provider value={qMetaValue}>
@@ -858,131 +894,370 @@
   /* ============ TypewriterText ============ */
   // Renders `text` character-by-character starting after `delay` ms,
   // one character every `speed` ms.  Respects prefers-reduced-motion.
-  function TypewriterText({ text, delay = 0, speed = 28 }) {
+  function TypewriterText({ text, delay = 0, speed = 28, onDone }) {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const [count, setCount] = useState(reducedMotion ? (text ? text.length : 0) : 0);
+    // Keep the latest onDone without re-triggering the typing effect when it changes.
+    const doneRef = useRef(onDone);
+    doneRef.current = onDone;
     useEffect(() => {
-      if (!text || reducedMotion) { setCount(text ? text.length : 0); return; }
+      const fireDone = () => { if (doneRef.current) doneRef.current(); };
+      if (!text || reducedMotion) {
+        setCount(text ? text.length : 0);
+        const id = setTimeout(fireDone, 0);
+        return () => clearTimeout(id);
+      }
       setCount(0);
       let current = 0;
+      let tick = null;
       const start = setTimeout(() => {
-        const tick = setInterval(() => {
+        tick = setInterval(() => {
           current += 1;
           setCount(current);
-          if (current >= text.length) clearInterval(tick);
+          if (current >= text.length) { clearInterval(tick); fireDone(); }
         }, speed);
-        // eslint-disable-next-line consistent-return
-        return () => clearInterval(tick);
       }, delay);
-      return () => clearTimeout(start);
+      return () => { clearTimeout(start); if (tick) clearInterval(tick); };
     }, [text, delay, speed, reducedMotion]);
     return text ? text.slice(0, count) : null;
   }
   // Expose so screens.jsx BotAlert can use it at render time (wizard.jsx loads first in call order)
   window.TypewriterText = TypewriterText;
 
-  // Progressive LLM copy (P2): seed from window.OB_COPY, then live-update on the
-  // `ob-copy` event bootstrap.js fires when the model responds after mount.
+  // Progressive LLM copy (P2): track both the copy and whether the round-trip has
+  // *settled* (succeeded or failed). `settled` lets the welcome show a typing
+  // indicator while Gemini is in flight and only render real copy once it lands.
   function useObCopy() {
-    const [copy, setCopy] = useState(window.OB_COPY || null);
+    const [state, setState] = useState({
+      copy: window.OB_COPY || null,
+      settled: !!window.OB_COPY_SETTLED,
+    });
     useEffect(() => {
-      if (window.OB_COPY) setCopy(window.OB_COPY);
-      const onCopy = (e) => setCopy(e.detail || window.OB_COPY || null);
+      if (window.OB_COPY_SETTLED) {
+        setState({ copy: window.OB_COPY || null, settled: true });
+      }
+      const onCopy = (e) => setState({ copy: e.detail || window.OB_COPY || null, settled: true });
       window.addEventListener("ob-copy", onCopy);
-      return () => window.removeEventListener("ob-copy", onCopy);
+      // Safety net: never hang the spinner if the event somehow never fires.
+      const t = setTimeout(() => setState((s) => (s.settled ? s : { ...s, settled: true })), 12000);
+      return () => { window.removeEventListener("ob-copy", onCopy); clearTimeout(t); };
     }, []);
-    return copy;
+    return state;
   }
 
-  /* ============ Welcome panel (S0) ============ */
-  function WelcomePanel({ onContinue, phaseIdx }) {
+  /* ============ Conversational welcome (S0) ============ */
+  // Browser-side label maps (mirror context_api.py) so the intro can speak the
+  // note's enum signals as natural language — without ever shipping raw note text.
+  const INTRO_MIGRATION = {
+    hostaway: "Hostaway", lodgify: "Lodgify", smoobu: "Smoobu", avantio: "Avantio",
+    hostfully: "Hostfully", uplisting: "Uplisting", streamline: "Streamline",
+    ownerrez: "OwnerRez", hospitable: "Hospitable", guesty_lite: "Guesty Lite",
+    guesty_for_hosts: "Guesty for Hosts", beds24: "Beds24", cloudbeds: "Cloudbeds",
+  };
+  const INTRO_ADDON = {
+    gpo: "GPO dynamic pricing", guestypay: "Guesty Pay", damage_protection: "Damage Protection",
+    locks: "smart locks", accounting: "Accounting", abw: "the advanced bookings widget",
+    auto_comply: "AutoComply", premium_channels: "premium channels",
+  };
+  const INTRO_FOCUS = {
+    owner_reporting: "owner reporting", pricing_strategy: "pricing strategy",
+    guest_messaging: "guest messaging", cleaner_workflows: "cleaner workflows",
+    accounting_setup: "accounting setup", booking_website: "a direct booking site",
+    reviews_reputation: "reviews & reputation", channel_mix: "channel mix",
+  };
+  function introJoin(arr) {
+    const a = (arr || []).filter(Boolean);
+    if (a.length <= 1) return a[0] || "";
+    if (a.length === 2) return a[0] + " and " + a[1];
+    return a.slice(0, -1).join(", ") + ", and " + a[a.length - 1];
+  }
+
+  function WelcomePanel({ onContinue, phaseIdx, answers, set }) {
     const ctx = window.OB_CONTEXT || null;
-    const llmCopy = useObCopy();
+    const prefill = (ctx && ctx.prefill) || {};
+    const csmName = CSM_NAME || "Amanda";
     const firstName = SF_PREFILL.first_name;
-    const hasPrefill = (SF_PREFILL.channels || []).length > 0;
-    const csmName = CSM_NAME;
-    const bullets = (ctx && ctx.note && ctx.note.summary_bullets) || [];
-    const repFirst = ctx && ctx.rep ? String(ctx.rep).split(" ")[0] : null;
-    const deferFin = !!(ctx && ctx.flags && ctx.flags.defer_financials);
-    const botLine = (llmCopy && llmCopy.bot_line) || (bullets.length
-      ? "I went through " + (repFirst ? repFirst + "’s" : "the") + " handover notes — here’s what I have so far."
-      : "First call Thursday, May 28 at 11:00 AM (PT)");
-    const llmIntro = llmCopy && llmCopy.intro;
-    // Each block fades in via CSS wiz-welcome-rise — no outer slide animation
+    const repFirst = ctx && ctx.rep ? String(ctx.rep).trim().split(/\s+/)[0] : null;
+
+    // Progressive LLM copy: when AI is on we briefly show a typing indicator, then
+    // swap the deterministic opening for Gemini's note-aware line once it lands.
+    const { copy: obCopy, settled: obSettled } = useObCopy();
+    const aiEnabled = !!(window.__OB_SESSION && window.__OB_SESSION.ai_enabled);
+    const llmBotLine = obCopy && obCopy.bot_line ? String(obCopy.bot_line).trim() : "";
+
+    // --- Honest fact fragments, drawn only from signals that actually exist ---
+    const n = SF_PREFILL.listing_count;
+    const migration = prefill.migration_source
+      ? (INTRO_MIGRATION[prefill.migration_source] || null)
+      : null;
+    const firstTime = prefill.prior_pms_experience === "none_first_time";
+    const experienced = prefill.prior_pms_experience === "experienced";
+    const addons = (prefill.addon_intent || []).map((a) => INTRO_ADDON[a] || a).filter(Boolean);
+    const focusLabels = (prefill.focus_topics || []).map((f) => INTRO_FOCUS[f] || f).filter(Boolean);
+
+    // Headline — the one-line "here's what I have" the user confirms first.
+    const headParts = [];
+    if (n) headParts.push(n + " listing" + (n === 1 ? "" : "s"));
+    if (migration) headParts.push("moving over from " + migration);
+    else if (firstTime) headParts.push("new to running a PMS");
+    if (addons.length) headParts.push("with " + introJoin(addons) + " in the mix");
+    const hasFacts = headParts.length > 0;
+    const headline = hasFacts ? headParts.join(", ") : "";
+
+    // Softer signals worth a second confirm — only surfaced when present.
+    const hasSofter = focusLabels.length > 0 || experienced || firstTime;
+    const notePresent = !!(ctx && ctx.note && ctx.note.present);
+
+    // --- Bot lines per conversation node ---
+    // Only claim to have read notes if notes actually exist, and only ask the
+    // user to confirm facts when we actually have facts to show.
+    const greetLines = (() => {
+      const lines = [
+        firstName
+          ? "Hi " + firstName + " — I'm " + csmName + ", your onboarding specialist."
+          : "Hi — I'm " + csmName + ", your onboarding specialist.",
+      ];
+      if (notePresent) {
+        lines.push(repFirst
+          ? "I read through " + repFirst + "'s handover notes before we start."
+          : "I read through the notes from your sales call before we start.");
+      }
+      if (hasFacts) {
+        lines.push("Here's what I've got: " + headline + ".");
+        lines.push("Does that all look right?");
+      } else {
+        lines.push("I don't have much on file yet, so we'll build it together as we go.");
+      }
+      return lines;
+    })();
+    const confirm2Lines = (() => {
+      const bits = [];
+      if (experienced) bits.push("you've run a PMS before, so you know your way around");
+      else if (firstTime) bits.push("this is your first time on a PMS");
+      if (focusLabels.length) bits.push("the thing you most want to get right is " + introJoin(focusLabels));
+      const lead = bits.length === 2
+        ? "One more read from the notes: " + bits[0] + ", and " + bits[1] + "."
+        : "One more read from the notes — " + (bits[0] || "") + ".";
+      return [lead, "Did I get that right?"];
+    })();
+    // Prefer the LLM opening (a single warm bubble that ends in one confirm question);
+    // fall back to the deterministic multi-line greeting offline or while it loads.
+    const confirm1Lines = llmBotLine ? [llmBotLine] : greetLines;
+    const linesFor = {
+      confirm1: confirm1Lines,
+      clarify1_change: ["Got it — what changed?"],
+      clarify1_off: ["No problem. What should I fix?"],
+      confirm2: confirm2Lines,
+      clarify2: ["Tell me a little more and I'll adjust."],
+      ready: [focusLabels.length
+        ? "Perfect — I've moved your " + introJoin(focusLabels) + " section up so we get to it sooner. Let's dive in."
+        : "Perfect — I've got what I need to get started. Let's dive in."],
+    };
+
+    const choices1 = hasFacts
+      ? [
+          { kind: "yes", label: "Yep, that's us" },
+          { kind: "change", label: "Mostly right — one thing changed" },
+          { kind: "off", label: "Not quite" },
+        ]
+      : [{ kind: "yes", label: "Sounds good" }];
+    const choices2 = [
+      { kind: "yes", label: "Spot on" },
+      { kind: "adjust", label: "Let me adjust" },
+    ];
+
+    // --- Conversation state ---
+    const [history, setHistory] = useState([]); // [{role:'bot',lines:[]}|{role:'user',text}]
+    const [node, setNode] = useState("confirm1");
+    const [inputReady, setInputReady] = useState(false);
+    const [draft, setDraft] = useState("");
+    const [thinking, setThinking] = useState(false);
+    const [ackText, setAckText] = useState("");
+    const ackNextRef = useRef("ready");
+    const scrollRef = useRef(null);
+
+    // Reset the per-turn input gate whenever Amanda starts a new line of dialogue.
+    useEffect(() => { setInputReady(false); setDraft(""); }, [node]);
+    // Keep the freshest turn in view as the thread grows.
+    useEffect(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }, [history, node, inputReady, thinking, ackText]);
+
+    const curLines = linesFor[node] || [];
+    // Hold the opening bubble on a typing indicator until Gemini's copy settles.
+    const waitingForCopy = aiEnabled && !obSettled && node === "confirm1";
+    const SPEED = 18;
+    let twCursor = 220;
+    const timings = curLines.map((ln) => {
+      const start = twCursor;
+      twCursor += Math.max(ln.length * SPEED, 380) + 120;
+      return start;
+    });
+
+    const pushBot = (lines) => setHistory((h) => [...h, { role: "bot", lines }]);
+    const pushUser = (text) => setHistory((h) => [...h, { role: "user", text }]);
+    const afterConfirm1 = () => (hasSofter ? "confirm2" : "ready");
+
+    const runAck = (text) => {
+      setThinking(true);
+      setAckText("");
+      const field = {
+        label: "Clarification about the account setup",
+        hint: "The user is correcting or adding detail to what we have on file.",
+        options: [],
+      };
+      const passthrough = "Got it — I've noted that and passed it to " + csmName + " for your first call.";
+      fetch("/api/normalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field, text }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const summary = (data && data.result && data.result.summary) || passthrough;
+          setThinking(false);
+          setAckText(summary);
+        })
+        .catch(() => { setThinking(false); setAckText(passthrough); });
+      setNode("ack");
+    };
+
+    const ackDone = () => {
+      pushBot([ackText]);
+      setNode(ackNextRef.current);
+    };
+
+    const choose1 = (choice) => {
+      pushBot(confirm1Lines);
+      pushUser(choice.label);
+      if (choice.kind === "yes") { setNode(afterConfirm1()); return; }
+      ackNextRef.current = afterConfirm1();
+      setNode(choice.kind === "change" ? "clarify1_change" : "clarify1_off");
+    };
+    const choose2 = (choice) => {
+      pushBot(confirm2Lines);
+      pushUser(choice.label);
+      if (choice.kind === "yes") { setNode("ready"); return; }
+      ackNextRef.current = "ready";
+      setNode("clarify2");
+    };
+    const submitText = () => {
+      const t = draft.trim();
+      if (t.length < 2 || thinking) return;
+      pushBot(linesFor[node]);
+      pushUser(t);
+      runAck(t);
+    };
+    const finish = () => {
+      if (set) set({
+        intro_done: true,
+        intro_focus_label: focusLabels[0] || null,
+        intro_focus_all: focusLabels,
+        intro_migration_label: migration || null,
+        intro_first_time: firstTime,
+        intro_experienced: experienced,
+      });
+      onContinue();
+    };
 
     return (
       <div className="wiz-panel">
-      <div className="wiz-panel-scroll">
+      <div className="wiz-panel-scroll" ref={scrollRef}>
         <div className="wiz-panel-inner welcome-panel-inner" key={phaseIdx}>
-
-          <div className="welcome-heading-block">
-            {csmName && (
-              <div className="bot-alert welcome-csm-bot">
-                <SkeletonImg
-                  src="assets/amanda-avatar.png"
-                  alt={csmName}
-                  className="welcome-csm-photo"
-                  wrapStyle={{ display: "inline-block", width: 40, height: 40, borderRadius: "50%", overflow: "hidden", flexShrink: 0, lineHeight: 0 }}
-                />
-                <div className="bot-body">
-                  <div className="bot-name">{csmName} — your onboarding specialist</div>
-                  <div><TypewriterText text={botLine} delay={380} speed={24} /></div>
-                </div>
+          <div className="intro-thread">
+            {history.map((turn, i) => turn.role === "bot" ? (
+              <window.AmandaBubble key={"h" + i} name={csmName} compact>
+                {turn.lines.map((ln, j) => <div key={j} className="intro-bot-line">{ln}</div>)}
+              </window.AmandaBubble>
+            ) : (
+              <div key={"h" + i} className="intro-user">
+                <div className="intro-user-bubble">{turn.text}</div>
               </div>
+            ))}
+
+            {node === "ack" ? (
+              <window.AmandaBubble key="ack" name={csmName} compact>
+                {thinking || !ackText
+                  ? <window.TypingDots />
+                  : <div className="intro-bot-line">
+                      <TypewriterText text={ackText} delay={120} speed={SPEED} onDone={ackDone} />
+                    </div>}
+              </window.AmandaBubble>
+            ) : (
+              <window.AmandaBubble key={"node-" + node} name={csmName} compact>
+                {waitingForCopy
+                  ? <window.TypingDots />
+                  : curLines.map((ln, i) => (
+                      <div key={i} className="intro-bot-line">
+                        <TypewriterText
+                          text={ln}
+                          delay={timings[i]}
+                          speed={SPEED}
+                          onDone={i === curLines.length - 1 ? () => setInputReady(true) : undefined}
+                        />
+                      </div>
+                    ))}
+              </window.AmandaBubble>
             )}
-            <h1 className="welcome-heading" style={{ marginTop: csmName ? 0 : undefined }}>
-              {firstName ? `Welcome, ${firstName}.` : "Welcome to Guesty."}
-            </h1>
           </div>
 
-          {bullets.length > 0 && (
-            <div className="welcome-recap" style={{ margin: "4px 0 2px", padding: "14px 16px", border: "1px solid hsl(var(--gst-border))", borderRadius: 12, background: "hsl(var(--gst-muted) / 0.4)" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", opacity: 0.6, marginBottom: 8 }}>
-                {repFirst ? "From " + repFirst + "’s handover" : "From your sales call"}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                {bullets.map((b, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 14 }}>
-                    <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 999, background: "hsl(var(--gst-success))", color: "white", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, marginTop: 1 }}>✓</span>
-                    <span>{b}</span>
-                  </div>
-                ))}
-              </div>
-              {deferFin && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed hsl(var(--gst-border))", fontSize: 13, opacity: 0.8 }}>
-                  We’ll keep the tax &amp; financial details light for now — {csmName} can walk through those live on your first call.
-                </div>
-              )}
+          {inputReady && (node === "confirm1" || node === "confirm2") && (
+            <div className="intro-choices">
+              {(node === "confirm1" ? choices1 : choices2).map((c) => (
+                <button
+                  key={c.kind}
+                  className="intro-choice"
+                  onClick={() => (node === "confirm1" ? choose1(c) : choose2(c))}
+                >
+                  {c.label}
+                </button>
+              ))}
             </div>
           )}
 
-          <p className="q-help welcome-q-help" style={{ margin: 0 }}>
-            {llmIntro
-              ? llmIntro
-              : bullets.length
-              ? "I’ve pre-filled what " + (repFirst || "sales") + " shared, so you’ll mostly be confirming what we already know — and filling in the gaps."
-              : (hasPrefill
-                ? "Let’s set up Guesty to match how you run your business. We’ll move through seven short sections — most of it pre-filled from your sales call, so you’re mostly confirming what we already know."
-                : "Let’s set up Guesty to match how you run your business. We’ll move through seven short sections.")}
-          </p>
-
-          <div className="q-actions welcome-q-actions">
-            <span className="wiz-kb-tip" data-tooltip="Press ↵ Enter">
+          {inputReady && (node === "clarify1_change" || node === "clarify1_off" || node === "clarify2") && (
+            <div className="intro-composer">
+              <textarea
+                className="intro-input"
+                rows={2}
+                value={draft}
+                placeholder="Type your answer…"
+                autoFocus
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitText(); }
+                }}
+              />
               <button
-                className="btn btn-primary"
-                onClick={onContinue}
-                style={{ fontSize: 15, padding: "12px 28px", borderRadius: 8 }}
+                className="intro-send"
+                onClick={submitText}
+                disabled={draft.trim().length < 2 || thinking}
               >
-                Let's go
-                <span style={{
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  marginLeft: 8, opacity: 0.7,
-                  background: "rgba(255,255,255,0.15)", borderRadius: 4,
-                  padding: "1px 5px", fontSize: 11, fontWeight: 600, letterSpacing: "0.02em"
-                }}>⏎</span>
+                Send
               </button>
-            </span>
-          </div>
+            </div>
+          )}
+
+          {node === "ready" && inputReady && (
+            <div className="q-actions welcome-q-actions">
+              <span className="wiz-kb-tip" data-tooltip="Press ↵ Enter">
+                <button
+                  className="btn btn-primary"
+                  onClick={finish}
+                  autoFocus
+                  style={{ fontSize: 15, padding: "12px 28px", borderRadius: 8 }}
+                >
+                  Let's go
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    marginLeft: 8, opacity: 0.7,
+                    background: "rgba(255,255,255,0.15)", borderRadius: 4,
+                    padding: "1px 5px", fontSize: 11, fontWeight: 600, letterSpacing: "0.02em"
+                  }}>⏎</span>
+                </button>
+              </span>
+            </div>
+          )}
 
         </div>
       </div>

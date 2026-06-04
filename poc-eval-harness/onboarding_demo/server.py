@@ -11,6 +11,7 @@ from the poc-eval-harness directory, or `python onboarding_demo/server.py`.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -24,6 +25,29 @@ if str(_HARNESS_ROOT) not in sys.path:
 from onboarding_demo import context_api, llm_copy  # noqa: E402
 
 _WEB_DIR = _HERE / "web"
+
+
+class PiiEgressError(RuntimeError):
+    """An API payload would leak raw handover-note text to the browser."""
+
+
+def _assert_no_raw_note(payload: object, raw_note: str | None) -> None:
+    """Fail closed if any substantial span of the raw note appears in a response.
+
+    The PII boundary (see context_api) says the browser receives only derived,
+    enum-based context — never raw note prose. This enforces that in code instead
+    of trusting the builders: short derived strings (business name, summary bullets)
+    sit well under the 40-char span threshold, so they never trip it; a verbatim
+    leak of note text would. The error message carries NO note content, so the
+    fail-closed 500 itself cannot leak.
+    """
+    if not raw_note:
+        return
+    serialized = json.dumps(payload, ensure_ascii=False).lower()
+    for span in re.split(r"[\n.]+", raw_note):
+        span = span.strip().lower()
+        if len(span) >= 40 and span in serialized:
+            raise PiiEgressError("raw note span detected in API payload")
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -42,6 +66,18 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_account_json(self, payload: object, account_name: str, status: int = 200) -> None:
+        """Send an account-scoped payload only after the PII egress guard clears it."""
+        try:
+            _assert_no_raw_note(payload, context_api.raw_note_for(account_name))
+        except PiiEgressError:
+            sys.stderr.write(
+                f"[demo] PII GUARD: withheld response for {account_name!r} — raw note text in payload\n"
+            )
+            self._send_json({"error": "pii_guard", "detail": "response withheld"}, status=500)
+            return
+        self._send_json(payload, status)
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -86,7 +122,7 @@ class Handler(SimpleHTTPRequestHandler):
                     self._send_json({"error": f"account not found: {name}"}, status=404)
                     return
                 ctx["ai_enabled"] = llm_copy.available()
-                self._send_json(ctx)
+                self._send_account_json(ctx, name)
                 return
             if path == "/api/copy":
                 name = (query.get("account") or [""])[0].strip()
@@ -97,7 +133,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if session is None:
                     self._send_json({"error": f"account not found: {name}"}, status=404)
                     return
-                self._send_json({"copy": llm_copy.personalized_copy(session)})
+                self._send_account_json({"copy": llm_copy.personalized_copy(session)}, name)
                 return
             self._send_json({"error": "unknown endpoint"}, status=404)
         except Exception as exc:  # surface errors as JSON for the browser console

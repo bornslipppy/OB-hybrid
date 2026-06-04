@@ -167,6 +167,34 @@ function SourceChip({ label }) {
   );
 }
 
+// Animated three-dot indicator shown while a Gemini round-trip is in flight.
+function TypingDots() {
+  return (
+    <div className="typing-dots" role="status" aria-label="thinking">
+      <span></span><span></span><span></span>
+    </div>
+  );
+}
+
+// Single source of truth for Amanda's voice: the blue specialist bubble with her
+// photo + name. Used on the welcome page, the priority callout, and the free-text
+// reply so every "Amanda says…" surface looks identical. Presentational only — no
+// typewriter so callers control their own content/animation.
+function AmandaBubble({ children, name, compact, style }) {
+  const csm = name || (typeof CSM_NAME !== "undefined" && CSM_NAME) || "Amanda";
+  return (
+    <div className={"amanda-turn" + (compact ? " amanda-turn--compact" : "")} style={style}>
+      <div className="amanda-turn-name">{csm} — your onboarding specialist</div>
+      <div className="amanda-turn-row">
+        <div className="amanda-turn-avatar" aria-hidden="true"></div>
+        <div className="amanda-turn-box">
+          <div className="amanda-turn-body">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ===================== NormalizeField — free-text + AI interpretation ===================== */
 // Controlled textarea that, on blur, POSTs the text to /api/normalize and shows
 // how the onboarding assistant understood it (matched focus topics + a short
@@ -177,81 +205,129 @@ function NormalizeField({ answers, set, textKey, resultKey, field, placeholder, 
   const text = answers[textKey] ?? "";
   const stored = answers[resultKey] ?? null;
   const [busy, setBusy] = useState(false);
-  // Track the text we last normalized so we don't refire for an unchanged value.
-  const lastSent = useRef(stored ? stored.__text : null);
+  // The user message currently shown in the thread (the text we sent to Gemini).
+  const [sentText, setSentText] = useState(stored ? stored.__text : null);
+  // Reopen the composer after a completed turn (escape hatch on the terminal state).
+  const [editing, setEditing] = useState(false);
   const remaining = maxChars - text.length;
+  const trimmed = text.trim();
+  const canSend = trimmed.length >= 3 && !busy && trimmed !== sentText;
+  const specialist = (window.OB_CONTEXT && window.OB_CONTEXT.specialist) || "your CSM";
 
-  // Debounced normalize: a short pause after the manager stops typing sends the
-  // text to /api/normalize. Avoids per-keystroke calls and the stale-closure
-  // pitfalls of an onBlur handler.
-  useEffect(() => {
-    const trimmed = text.trim();
-    if (trimmed.length < 8 || trimmed === lastSent.current) return;
-    const handle = setTimeout(() => {
-      lastSent.current = trimmed;
-      setBusy(true);
-      fetch("/api/normalize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ field, text: trimmed }),
+  // Explicit send (button or Enter) — the user controls exactly when Gemini is called.
+  const send = () => {
+    if (trimmed.length < 3 || busy) return;
+    setSentText(trimmed);
+    setEditing(false);
+    setBusy(true);
+    // If the model is slow, rate-limited, or returns nothing usable, we still owe the
+    // user a reply and a saved answer — never collapse the turn to a blank dead-end.
+    const passthrough = {
+      normalized: trimmed,
+      matched_options: [],
+      summary: "Got it — I've noted this for " + specialist + " to dig into on Call 1.",
+      needs_confirmation: false,
+      source: "passthrough",
+    };
+    fetch("/api/normalize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field, text: trimmed }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const result = (data && data.result) || passthrough;
+        set(resultKey, { ...result, __text: trimmed });
       })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          const result = data && data.result;
-          if (result) set(resultKey, { ...result, __text: trimmed });
-        })
-        .catch(() => {})
-        .finally(() => setBusy(false));
-    }, 900);
-    return () => clearTimeout(handle);
-  }, [text]);
+      .catch(() => set(resultKey, { ...passthrough, __text: trimmed }))
+      .finally(() => setBusy(false));
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (canSend) send();
+    }
+  };
+
+  // Single-turn chat states: a fresh Amanda reply for the currently-sent text means
+  // the turn is *done* — collapse the composer to a terminal state with an Edit
+  // escape hatch, per bounded-wizard chat patterns. Busy hides the composer too.
+  const hasReply = !busy && !!stored && stored.__text === sentText;
+  const showThread = busy || hasReply;
+  const composerVisible = (!sentText || editing) && !busy;
 
   return (
-    <>
-      <textarea
-        className="input"
-        placeholder={placeholder}
-        value={text}
-        onChange={(e) => set(textKey, e.target.value)}
-      />
-      <div style={{ fontSize: 11, color: remaining < 0 ? "hsl(var(--gst-warning))" : "hsl(var(--gst-muted-foreground))", textAlign: "right", marginTop: -12 }}>
-        {busy ? "Reading your answer…" : remaining < 0 ? `Try to keep it under ${maxChars} characters — your CSM will dig in on the call.` : `${remaining} characters left`}
-      </div>
-      {stored && (stored.summary || (stored.matched_options || []).length) && (
-        <div style={{
-          marginTop: 4, padding: "12px 14px", borderRadius: 10,
-          background: "hsl(var(--gst-primary) / 0.05)",
-          border: "1px solid hsl(var(--gst-primary) / 0.18)",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: stored.summary ? 6 : 0 }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--gst-primary))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6z" />
-            </svg>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "hsl(var(--gst-primary))", letterSpacing: "0.01em" }}>
-              Here's what I noted for your CSM
-            </span>
-          </div>
-          {stored.summary && (
-            <div style={{ fontSize: 13.5, color: "hsl(var(--gst-foreground))", lineHeight: 1.45 }}>{stored.summary}</div>
-          )}
-          {!!(stored.matched_options || []).length && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-              {stored.matched_options.map((opt) => (
-                <span key={opt} style={{
-                  fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 999,
-                  background: "hsl(var(--gst-primary) / 0.1)", color: "hsl(var(--gst-primary))",
-                }}>{opt}</span>
-              ))}
-            </div>
-          )}
-          {stored.needs_confirmation && (
-            <div style={{ fontSize: 12, color: "hsl(var(--gst-warning))", marginTop: 8, fontWeight: 500 }}>
-              I'll flag this for {(window.OB_CONTEXT && window.OB_CONTEXT.specialist) || "your CSM"} to confirm the exact numbers on Call 1.
-            </div>
-          )}
+    <div className="ob-chat">
+      {showThread && (
+        <div className="ob-chat-window">
+          {sentText && <div className="ob-chat-msg ob-chat-msg--user">{sentText}</div>}
+          <AmandaBubble compact>
+            {busy ? (
+              <TypingDots />
+            ) : (
+              <>
+                {stored.summary && (
+                  <div style={{ fontSize: 13.5, lineHeight: 1.45 }}>{stored.summary}</div>
+                )}
+                {!!(stored.matched_options || []).length && (
+                  <div className="amanda-pills">
+                    {stored.matched_options.map((opt) => (
+                      <span key={opt} className="amanda-pill">{opt}</span>
+                    ))}
+                  </div>
+                )}
+                {stored.needs_confirmation && (
+                  <div className="amanda-confirm">
+                    I'll flag this for {specialist} to confirm the exact numbers on Call 1.
+                  </div>
+                )}
+              </>
+            )}
+          </AmandaBubble>
         </div>
       )}
-    </>
+
+      {composerVisible && (
+        <>
+          <div className="ob-chat-composer">
+            <textarea
+              className="input"
+              placeholder={placeholder}
+              value={text}
+              onChange={(e) => set(textKey, e.target.value)}
+              onKeyDown={onKeyDown}
+              autoFocus={editing}
+            />
+            <button
+              type="button"
+              className="btn btn-primary ob-chat-send"
+              onClick={send}
+              disabled={!canSend}
+              title="Send to your CSM (↵)"
+            >
+              Send
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
+            </button>
+          </div>
+          <div className="ob-chat-counter" style={{ color: remaining < 0 ? "hsl(var(--gst-warning))" : "hsl(var(--gst-muted-foreground))" }}>
+            {remaining < 0 ? `Try to keep it under ${maxChars} characters — your CSM will dig in on the call.` : `${remaining} characters left`}
+          </div>
+        </>
+      )}
+
+      {hasReply && !editing && (
+        <div className="ob-chat-done">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="hsl(var(--gst-success))" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span className="ob-chat-done-note">Saved — {specialist} will pick this up on Call 1.</span>
+          <button type="button" className="ob-chat-edit" onClick={() => setEditing(true)}>Edit answer</button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1727,6 +1803,39 @@ function ChannelsV5Render({ answers, set }) {
   );
 }
 
+// Operations · Cleaning. Seeds the sales-call prefill (External · Turno) in an
+// effect rather than during render, so it never calls setState while rendering.
+function CleaningV5Render({ answers, set }) {
+  const editing = answers.__editing_cleaning;
+  useEffect(() => {
+    if (!editing && !answers.cleaning_system && SF_PREFILL.partner_cleaning) {
+      set({ cleaning_system: "external", cleaning_provider: "turno" });
+    }
+  }, []);
+  const showChip = !editing && SF_PREFILL.partner_cleaning && answers.cleaning_system === "external";
+  return (
+    <>
+      <QMeta section={3} sectionName="Operations" qIndex={1} qTotal={4} />
+      <h1 className="q-title">How do you manage cleaning today?</h1>
+      <InlineBot>We'll match the rest of Guesty's settings to whatever you tell us here.</InlineBot>
+      {showChip ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", border: "1.5px solid hsl(var(--gst-primary) / 0.3)", background: "hsl(var(--gst-muted) / 0.5)", borderRadius: 10, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>External provider · Turno</div>
+          <SourceChip label="Pre-filled from your sales call. Looks right?" />
+          <div style={{ flex: 1 }}></div>
+          <button className="btn btn-secondary" onClick={() => set("__editing_cleaning", true)}>Change</button>
+        </div>
+      ) : (
+        <div className="opt-list">
+          <Option k="1" label="External provider (Breezeway, Turno, etc.)" selected={answers.cleaning_system === "external"} onSelect={() => set("cleaning_system", "external")} />
+          <Option k="2" label="In current PMS" selected={answers.cleaning_system === "pms"} onSelect={() => set({ cleaning_system: "pms", cleaning_provider: undefined, cleaning_provider_other: undefined })} />
+          <Option k="3" label="Other" selected={answers.cleaning_system === "other"} onSelect={() => set({ cleaning_system: "other", cleaning_provider: undefined, cleaning_provider_other: undefined })} />
+        </div>
+      )}
+    </>
+  );
+}
+
 // UX Patch 3.2b — Page 2 of 2: "To add with Guesty". Standalone page that follows
 // the "On today" page. Channels already on today are disabled here (you can't add
 // what you already run); "None yet" is filtered out — you can't *add* "none".
@@ -2100,9 +2209,6 @@ function makeScreens() { return [
     return (
       <>
         <QMeta section="2" sectionName="Portfolio & Channels" qIndex={1} qTotal={7} />
-        <BotAlert>
-          <div>We've pulled most of this in automatically — you'll just confirm what's right.</div>
-        </BotAlert>
         <h1 className="q-title">How many active listings do you have?</h1>
         <p className="q-help">We pulled this from your sales call. Confirm or update it before we connect Airbnb.</p>
         {!editing ? (
@@ -2346,34 +2452,7 @@ function makeScreens() { return [
 {
   id: "Q2.1", section: 3, sectionName: "Operations", qIndex: 1, qTotal: 4,
   anchor: false, canvas: null,
-  render: ({ answers, set }) => {
-    const editing = answers.__editing_cleaning;
-    if (!editing && !answers.cleaning_system && SF_PREFILL.partner_cleaning) {
-      set({ cleaning_system: "external", cleaning_provider: "turno" });
-    }
-    const showChip = !editing && SF_PREFILL.partner_cleaning && answers.cleaning_system === "external";
-    return (
-      <>
-        <QMeta section={3} sectionName="Operations" qIndex={1} qTotal={4} />
-        <h1 className="q-title">How do you manage cleaning today?</h1>
-        <InlineBot>We'll match the rest of Guesty's settings to whatever you tell us here.</InlineBot>
-        {showChip ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", border: "1.5px solid hsl(var(--gst-primary) / 0.3)", background: "hsl(var(--gst-muted) / 0.5)", borderRadius: 10, flexWrap: "wrap" }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>External provider · Turno</div>
-            <SourceChip label="Pre-filled from your sales call. Looks right?" />
-            <div style={{ flex: 1 }}></div>
-            <button className="btn btn-secondary" onClick={() => set("__editing_cleaning", true)}>Change</button>
-          </div>
-        ) : (
-          <div className="opt-list">
-            <Option k="1" label="External provider (Breezeway, Turno, etc.)" selected={answers.cleaning_system === "external"} onSelect={() => set("cleaning_system", "external")} />
-            <Option k="2" label="In current PMS" selected={answers.cleaning_system === "pms"} onSelect={() => set({ cleaning_system: "pms", cleaning_provider: undefined, cleaning_provider_other: undefined })} />
-            <Option k="3" label="Other" selected={answers.cleaning_system === "other"} onSelect={() => set({ cleaning_system: "other", cleaning_provider: undefined, cleaning_provider_other: undefined })} />
-          </div>
-        )}
-      </>
-    );
-  },
+  render: (props) => <CleaningV5Render {...props} />,
   valid: (a) => !!a.cleaning_system,
   primaryLabel: (a) => (a.__editing_cleaning || !SF_PREFILL.partner_cleaning) ? "Continue" : "Looks right",
 },
@@ -3089,6 +3168,8 @@ function makeScreens() { return [
 
 window.makeScreens = makeScreens;
 window.BotAlert = BotAlert;
+window.AmandaBubble = AmandaBubble;
+window.TypingDots = TypingDots;
 window.InlineBot = InlineBot;
 // Exposed so wizard.jsx (separate IIFE) can reuse the pick-one option control
 // on the homepage question carousel.

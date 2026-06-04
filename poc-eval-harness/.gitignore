@@ -13,7 +13,16 @@ h2/data/*.raw
 profiles/raw/
 *.handover.txt
 *.handover_raw.*
-# Tamar export for demo: tracked on private ob-brain only — see data/README.md
+
+# PII spreadsheets (sales-notes / handover exports) — never auto-stage these.
+# The existing Tamar export is already tracked on private ob-brain clones; these
+# rules block any NEW or re-exported PII workbook from being added accidentally.
+# To add an intended export to a private clone, force it: `git add -f <file>`.
+data/*.xlsx
+data/*.xls
+data/*.csv
+*Notes-for-*
+*sales-notes*
 
 # Campaign run outputs are tracked for private ob-brain clones (reproducible eval artifacts).
 # proto-manifest remains the canonical freeze stub for dry-runs.

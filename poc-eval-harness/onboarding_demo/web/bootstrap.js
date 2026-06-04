@@ -77,18 +77,26 @@
   // --- Progressive LLM copy (P2): fetched in parallel, applied when it arrives ---
   // The deterministic note-aware copy renders immediately; if the model returns
   // personalized copy a moment later, we broadcast it and the WelcomePanel swaps it in.
+  // Always settle the copy phase — success OR failure dispatches `ob-copy` (detail
+  // may be null) and sets OB_COPY_SETTLED, so the WelcomePanel can stop its spinner
+  // and fall back to deterministic copy instead of waiting forever.
+  function settleCopy(copy) {
+    window.OB_COPY = copy || null;
+    window.OB_COPY_SETTLED = true;
+    window.dispatchEvent(new CustomEvent('ob-copy', { detail: copy || null }));
+  }
+
   function fetchCopy() {
     fetch('/api/copy?account=' + encodeURIComponent(account))
       .then(function (r) {
         return r.ok ? r.json() : null;
       })
       .then(function (data) {
-        var copy = data && data.copy;
-        if (!copy) return;
-        window.OB_COPY = copy;
-        window.dispatchEvent(new CustomEvent('ob-copy', { detail: copy }));
+        settleCopy(data && data.copy);
       })
-      .catch(function () {});
+      .catch(function () {
+        settleCopy(null);
+      });
   }
 
   fetch('/api/session/init?account=' + encodeURIComponent(account))

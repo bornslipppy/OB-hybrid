@@ -20,18 +20,33 @@ jobs:
 
       - name: Check for committed PII patterns
         shell: bash
+        env:
+          # On PRs, diff against the merge base (covers every commit in the PR, not
+          # just the tip). On pushes, diff against the prior pushed SHA. Fall back to
+          # the empty tree so a brand-new branch still scans all files.
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only $(git hash-object -t tree /dev/null) HEAD)
+          EMPTY_TREE=$(git hash-object -t tree /dev/null)
+          if [[ -n "$BASE_SHA" && "$BASE_SHA" != "0000000000000000000000000000000000000000" ]] \
+             && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            RANGE="$BASE_SHA HEAD"
+          else
+            RANGE="$EMPTY_TREE HEAD"
+          fi
+          echo "PII guard diff range: $RANGE"
+          CHANGED=$(git diff --name-only $RANGE)
           BLOCKED=0
 
           for f in $CHANGED; do
             # Blocked path prefixes (raw note directories).
-            if [[ "$f" == h2/data/raw/* || "$f" == profiles/raw/* ]]; then
+            if [[ "$f" == h2/data/raw/* || "$f" == profiles/raw/* || "$f" == */data/raw/* ]]; then
               echo "❌  PII GUARD: blocked path committed: $f"
               BLOCKED=1
             fi
-            # Blocked filename patterns.
-            if [[ "$f" == *.pii || "$f" == *.handover_raw.* || "$f" == *.handover.txt ]]; then
+            # Blocked filename patterns (raw notes + PII spreadsheets / exports).
+            if [[ "$f" == *.pii || "$f" == *.handover_raw.* || "$f" == *.handover.txt \
+               || "$f" == */data/*.xlsx || "$f" == */data/*.xls || "$f" == */data/*.csv \
+               || "$f" == *Notes-for-* || "$f" == *sales-notes* ]]; then
               echo "❌  PII GUARD: blocked filename pattern: $f"
               BLOCKED=1
             fi
