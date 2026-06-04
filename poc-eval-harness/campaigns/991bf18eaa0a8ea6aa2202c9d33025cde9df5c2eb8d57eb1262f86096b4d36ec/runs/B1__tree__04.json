@@ -1,0 +1,46 @@
+{
+  "created_at": "2026-06-02T18:31:27.845576+00:00",
+  "end_reason": "completed",
+  "error": null,
+  "in_scope_slots": [
+    "channels",
+    "mandatory_fees",
+    "ownership_model",
+    "payment_timing",
+    "taxes"
+  ],
+  "manifest_hash": "991bf18eaa0a8ea6aa2202c9d33025cde9df5c2eb8d57eb1262f86096b4d36ec",
+  "metrics": {
+    "clarification_efficiency": 1.0,
+    "denominator": 5,
+    "false_write_rate": 0.0,
+    "false_writes": 0,
+    "human_rating_pending": [],
+    "numerator": 1,
+    "questions_to_completion": 22,
+    "sar": 0.2,
+    "total_echo_writes": 2
+  },
+  "models": {
+    "agent": "claude-opus-4-6",
+    "simulator": "gemini-2.5-flash"
+  },
+  "profile_id": "B1",
+  "provider_config": {
+    "agent": "cursor",
+    "extractor_model": "claude-opus-4-6",
+    "simulator": "gemini"
+  },
+  "run_index": 4,
+  "seed": 46,
+  "status": "completed",
+  "system_id": "tree",
+  "tag": "scored",
+  "trace_path": "runs/B1__tree__04.trace.jsonl",
+  "usage": {
+    "cost_usd": 0.0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "wall_clock_ms": 0.0
+  }
+}

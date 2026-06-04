@@ -17,10 +17,8 @@ profiles/raw/
 data/*.xlsx
 data/*.xls
 
-# Campaign run outputs (large, retained per directory, not in git).
-# Exception: the proto-manifest is a tracked freeze artifact.
-campaigns/
-!campaigns/proto-manifest.json
+# Campaign run outputs are tracked for private ob-brain clones (reproducible eval artifacts).
+# proto-manifest remains the canonical freeze stub for dry-runs.
 
 # Scaffold dirs: track the .gitkeep placeholder, ignore generated content.
 runs/*

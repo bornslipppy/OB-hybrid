@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-06-02T18:04:06.487483+00:00",
+  "entries": {
+    "agent_system_prompt": "aab568bde9e83f8eabc4ec79276c55a68fd6138426035310b9150e2c885bc26b",
+    "lockfile": "786880e855cbe43ecb6d67cd470f509ab7a6624ae134cbd4079845a20d001eaa",
+    "run_config": "72ef25ab2ae3ea489a24e201609c1c3073ee220cb9c22db684ea700693a2f212",
+    "schema": "7373fab801569a15e63367ecf4942911389d49c4b9c9ee363afd27ec92af01aa",
+    "scored_profiles": "6633d556636e1bbe4fa32b319d1fdf644ac637aff15b444e857284d1d9580e19",
+    "scoring_module": "9b8443b1315454dab7ecda142bc255ce183e047d364066ebbf386375e315df94",
+    "simulator_scripted_turns": "f3684dc83314439de5814bdfaeff259bd67bda8a90102f696354298223d80655",
+    "tree_module": "40e8512834e0ec057dd16739bda50395cf238688e48794d848c7a01e75bfd6f4"
+  },
+  "git_sha": "98681359ef96d6333d5082f2a22e6a0633ccc7ee",
+  "manifest_hash": "09486ae16ade1e72e11e69e821d8d148721e211595150b5dc78dd2b9136095bc",
+  "pm_override": false,
+  "refreeze_count": 0,
+  "resolved_paths": {
+    "agent_system_prompt": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/agent/prompts/system_prompt.txt",
+    "lockfile": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/uv.lock",
+    "run_config": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/config/run_config.toml",
+    "schema": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/schema/guesty-pro-account-creation-schema.md",
+    "scored_profiles": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/profiles/scored",
+    "scoring_module": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/scoring",
+    "simulator_scripted_turns": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/simulator/scripted_turns",
+    "tree_module": "/Users/yair.cohen/Documents/GitHub/BMAD-METHOD/poc-eval-harness/tree"
+  },
+  "schema_version": "0.3 (synthetic, knowledge-base validated, + sales-handover-note prefill layer, for PoC)"
+}

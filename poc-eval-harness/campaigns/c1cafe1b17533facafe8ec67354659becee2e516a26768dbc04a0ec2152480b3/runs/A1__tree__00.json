@@ -1,0 +1,57 @@
+{
+  "created_at": "2026-06-02T18:16:04.797827+00:00",
+  "end_reason": "completed",
+  "error": null,
+  "in_scope_slots": [
+    "channels",
+    "decision_owner",
+    "focus_topics",
+    "listing_count",
+    "mandatory_fees",
+    "non_refundable_enabled",
+    "ownership_model",
+    "pain",
+    "payment_timing",
+    "rate_strategy",
+    "revenue_recognition",
+    "security_deposit_amount",
+    "security_deposit_type",
+    "taxes"
+  ],
+  "manifest_hash": "c1cafe1b17533facafe8ec67354659becee2e516a26768dbc04a0ec2152480b3",
+  "metrics": {
+    "clarification_efficiency": 0.75,
+    "denominator": 14,
+    "false_write_rate": 0.0,
+    "false_writes": 0,
+    "human_rating_pending": [
+      "pain"
+    ],
+    "numerator": 9,
+    "questions_to_completion": 26,
+    "sar": 0.6428571428571429,
+    "total_echo_writes": 2
+  },
+  "models": {
+    "agent": "claude-opus-4-6",
+    "simulator": "gemini-2.5-flash"
+  },
+  "profile_id": "A1",
+  "provider_config": {
+    "agent": "cursor",
+    "extractor_model": "claude-opus-4-6",
+    "simulator": "gemini"
+  },
+  "run_index": 0,
+  "seed": 42,
+  "status": "completed",
+  "system_id": "tree",
+  "tag": "scored",
+  "trace_path": "runs/A1__tree__00.trace.jsonl",
+  "usage": {
+    "cost_usd": 0.0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "wall_clock_ms": 0.0
+  }
+}

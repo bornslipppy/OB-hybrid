@@ -1,0 +1,18 @@
+{
+  "created_at": "2026-06-03T06:16:41.757890+00:00",
+  "end_reason": "errored",
+  "error": "NotFoundError: Error code: 404 - [{'error': {'code': 404, 'message': 'This model models/gemini-2.0-flash is no longer available. Please update your code to use a newer model for the latest features and improvements.', 'status': 'NOT_FOUND'}}]",
+  "in_scope_slots": [],
+  "manifest_hash": "bd0e4095bdbeb22257e4d615da4ba89d0148b2257385099e894ed58b5254ace1",
+  "metrics": {},
+  "models": {},
+  "profile_id": "B1",
+  "provider_config": {},
+  "run_index": 0,
+  "seed": 42,
+  "status": "errored",
+  "system_id": "agent",
+  "tag": "scored",
+  "trace_path": null,
+  "usage": null
+}

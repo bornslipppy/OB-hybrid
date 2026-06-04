@@ -1,0 +1,43 @@
+{"kind":"user_facing_question","turn":0,"slot":"listing_count","text":"How many active listings do you have?"}
+{"kind":"tool_call","turn":1,"tool":"record_answer","args":{"field_id":"listing_count","value":12,"source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":1,"slot":"channels","text":"Which channels are you using? For example: Airbnb, Booking.com, VRBO, direct bookings, or others?"}
+{"kind":"tool_call","turn":2,"tool":"record_answer","args":{"field_id":"channels","value":["airbnb","vrbo","booking"],"source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":2,"slot":"go_live","text":"When are you hoping to go live with Guesty? Are you aiming to start as soon as possible, in 2–4 weeks, in 1–2 months, or are you still exploring?"}
+{"kind":"tool_call","turn":3,"tool":"flag_for_call_1","args":{"topic":"go_live","user_quote":"User deferred","note":"Required field 'go_live' deferred by user — needs Call-1 resolution.","field_id":"go_live"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":3,"slot":"cleaning_system","text":"How do you handle cleaning — is it done in-house by your own team, through a cleaning company, via a marketplace app like Turno, or a mix?"}
+{"kind":"tool_call","turn":4,"tool":"skip_question","args":{"field_id":"cleaning_system","reason":"User deferred / not known yet"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":4,"slot":"turnover_checklist_choice","text":"For your turnover checklist: would you like to upload your own, use a Guesty template, or skip for now?"}
+{"kind":"tool_call","turn":5,"tool":"skip_question","args":{"field_id":"turnover_checklist_choice","reason":"User deferred / not known yet"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":5,"slot":"smart_locks","text":"Do you use smart locks? If so, which system?"}
+{"kind":"tool_call","turn":6,"tool":"skip_question","args":{"field_id":"smart_locks","reason":"User deferred / not known yet"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":6,"slot":"revenue_recognition","text":"For your revenue analytics, should Guesty recognize revenue on the check-in date, the check-out date, or prorated across the stay?"}
+{"kind":"tool_call","turn":7,"tool":"record_answer","args":{"field_id":"revenue_recognition","value":"checkin_date","source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":7,"slot":"non_refundable_enabled","text":"Do you offer a non-refundable rate option — where guests pay less but can't cancel? (I'll note your answer and flag it for your onboarding specialist Jordan to configure.)"}
+{"kind":"tool_call","turn":8,"tool":"record_answer","args":{"field_id":"non_refundable_enabled","value":true,"source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":8,"slot":"security_deposit_type","text":"For security on bookings: do you use Guesty's Damage Protection (Shield), collect a standard security deposit, a damage waiver, or none?"}
+{"kind":"tool_call","turn":9,"tool":"record_answer","args":{"field_id":"security_deposit_type","value":"damage_waiver","source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":9,"slot":"security_deposit_amount","text":"What amount do you charge? Give me a flat amount (e.g. '$300') or a percentage of the stay."}
+{"kind":"value_introduced","turn":10,"slot":"security_deposit_amount","subfield":null,"value":{"amount":75.0,"unit":"flat"}}
+{"kind":"echo_issued","turn":10,"slot":"security_deposit_amount","subfield":null,"value":{"amount":75.0,"unit":"flat"}}
+{"kind":"user_facing_question","turn":10,"slot":"security_deposit_amount","text":"Just to confirm — the security deposit is 75.0 (flat). Is that right?"}
+{"kind":"user_confirmed","turn":11,"slot":"security_deposit_amount","subfield":null}
+{"kind":"tool_call","turn":11,"tool":"record_answer","args":{"field_id":"security_deposit_amount","value":{"amount":75.0,"unit":"flat"},"source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":11,"slot":"payment_timing","text":"When do you collect payment from guests — at the time of booking, closer to arrival, or split into two payments?"}
+{"kind":"tool_call","turn":12,"tool":"record_answer","args":{"field_id":"payment_timing","value":"at_booking","source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":12,"slot":"mandatory_fees","text":"Are there any mandatory fees you charge all guests — like a late check-out fee, pet fee, or laundry fee? Note: per-property cleaning fees are handled separately. If none, just say 'none'."}
+{"kind":"value_introduced","turn":13,"slot":"mandatory_fees","subfield":"amount","value":{"amount":40.0,"unit":"flat"}}
+{"kind":"echo_issued","turn":13,"slot":"mandatory_fees","subfield":"amount","value":{"amount":40.0,"unit":"flat"}}
+{"kind":"user_facing_question","turn":13,"slot":"mandatory_fees","text":"Just to confirm — a Yes, I have a mandatory hot tub fee of per stay, which appli of 40.0 (flat). Is that right?"}
+{"kind":"user_confirmed","turn":14,"slot":"mandatory_fees","subfield":"amount"}
+{"kind":"tool_call","turn":14,"tool":"add_fee","args":{"fee_type":"Yes, I have a mandatory hot tub fee of per stay, which appli","amount":40.0,"unit":"flat"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":14,"slot":"mandatory_fees_more","text":"Any other mandatory fees, or are we done with fees?"}
+{"kind":"tool_call","turn":15,"tool":"skip_question","args":{"field_id":"mandatory_fees","reason":"User has no mandatory fees"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":15,"slot":"taxes","text":"What taxes do you collect on reservations? For example, occupancy tax, city tax, sales tax, VAT, or GST? I'll capture exactly what you tell me and flag it for Jordan — we never configure taxes without specialist review."}
+{"kind":"user_facing_question","turn":16,"slot":"taxes","text":"Is the I collect sales tax at a rate of 2.9% for Colorado, lodging tax at a rate of 2% for Summit County, and city tax at a rate of 2.5% for Breckenridge. inclusive or exclusive (i.e. added on top)?"}
+{"kind":"tool_call","turn":17,"tool":"skip_question","args":{"field_id":"taxes","reason":"User has no taxes to configure"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":17,"slot":"decision_owner","text":"Who will be the decision-maker for the Guesty setup — just you, or will you have teammates to invite?"}
+{"kind":"tool_call","turn":18,"tool":"skip_question","args":{"field_id":"decision_owner","reason":"User deferred / not known yet"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":18,"slot":"focus_topics","text":"What are your top 1–3 priorities you want to cover on the first call with Jordan? Options: pricing strategy, channel mix, guest messaging, cleaner workflows, accounting setup, owner reporting, booking website, or reviews/reputation."}
+{"kind":"tool_call","turn":19,"tool":"record_answer","args":{"field_id":"focus_topics","value":["pricing_strategy","accounting_setup"],"source":"user_stated"},"call_type":"scored","temperature":0.0}
+{"kind":"user_facing_question","turn":19,"slot":"pain","text":"What's the biggest challenge you're trying to solve with Guesty — in your own words?"}
+{"kind":"session_end","turn":20,"reason":"incomplete_turn_cap"}

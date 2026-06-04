@@ -1,0 +1,18 @@
+{
+  "created_at": "2026-06-02T21:38:58.767713+00:00",
+  "end_reason": "errored",
+  "error": "InternalServerError: Error code: 500 - {'error': {'message': \"agent exited 1: S: You've reached your normal usage limit. You're out of usage. Switch to Auto or Composer 2.5, or ask your admin to increase your limit to continue.\", 'code': 'bridge_error'}}",
+  "in_scope_slots": [],
+  "manifest_hash": "7e6e9034c4aa3863bfcdd1d02c5f5add6c68879b4637804d419473665dfdd797",
+  "metrics": {},
+  "models": {},
+  "profile_id": "B4",
+  "provider_config": {},
+  "run_index": 0,
+  "seed": 42,
+  "status": "errored",
+  "system_id": "agent",
+  "tag": "scored",
+  "trace_path": null,
+  "usage": null
+}
