@@ -28,7 +28,7 @@ cp .env.example .env
 | `ANTHROPIC_API_KEY` | Agent (direct Anthropic) | Omit `CURSOR_BASE_URL` to use native Anthropic SDK |
 | `SALES_NOTES_XLSX` | Streamlit demo (real accounts) | **PII** — absolute path to Tamar export; never commit the file |
 
-**Handover notes (PII):** Export stays on your machine (`~/Downloads`, `poc-eval-harness/data/`, or `SALES_NOTES_XLSX`). The repo `.gitignore` blocks `*.xlsx` and raw notes by design (NFR-3).
+**Handover notes (PII):** Private **ob-brain** includes `data/Notes-for-Tamar-2026-06-02.xlsx` (auto-detected by the demo). Do not make the repo public. Override with `SALES_NOTES_XLSX` if needed.
 
 **Campaign outputs:** `poc-eval-harness/campaigns/` holds frozen eval manifests, run records, and traces (tracked on private **ob-brain**). Re-run `uv run python -m harness` to add new campaigns locally.
 
@@ -61,7 +61,7 @@ uv sync --extra demo
 uv run streamlit run harness/demo_app.py
 ```
 
-1. In the sidebar, set **Sales notes path** or ensure `SALES_NOTES_XLSX` in `.env` points at your Tamar `.xlsx`
+1. Sales notes load from `data/Notes-for-Tamar-2026-06-02.xlsx` when present (or set path in sidebar / `SALES_NOTES_XLSX`)
 2. Search for an account (e.g. **City and Coastal**)
 3. Expand **Handover note** to verify the export row
 4. **Start session** — the agent opens with note-aware confirmations
