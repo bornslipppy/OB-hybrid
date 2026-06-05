@@ -897,19 +897,66 @@
 
   }
 
+  /* ============ Rich (bold-aware) text ============ */
+  // Amanda's lines can carry **double-asterisk** spans around the concrete facts
+  // pulled from the handover (listing count, focus topic, add-on, migration source)
+  // so those variables render bold. We parse the markers into segments once and
+  // render either statically (RichBold) or progressively (TypewriterText). The
+  // `**` markers are display-only and are stripped from the visible text, so the
+  // char-by-char typewriter never pauses on a marker.
+  function parseBoldSegments(text) {
+    const segs = [];
+    const re = /\*\*([\s\S]+?)\*\*/g;
+    let last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) segs.push({ text: text.slice(last, m.index), bold: false });
+      segs.push({ text: m[1], bold: true });
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) segs.push({ text: text.slice(last), bold: false });
+    return segs;
+  }
+  // Render segments up to `limit` visible chars (null = all). Returns React nodes.
+  function boldSegmentNodes(segments, limit) {
+    let remaining = limit == null ? Infinity : limit;
+    const out = [];
+    for (let i = 0; i < segments.length && remaining > 0; i++) {
+      const seg = segments[i];
+      const slice = remaining === Infinity ? seg.text : seg.text.slice(0, remaining);
+      if (remaining !== Infinity) remaining -= slice.length;
+      if (!slice) continue;
+      out.push(seg.bold
+        ? <strong key={i}>{slice}</strong>
+        : <React.Fragment key={i}>{slice}</React.Fragment>);
+    }
+    return out;
+  }
+  // Static bold-aware text (used for past turns in the thread).
+  function RichBold({ text }) {
+    if (!text) return null;
+    return <>{boldSegmentNodes(parseBoldSegments(text), null)}</>;
+  }
+  window.RichBold = RichBold;
+
   /* ============ TypewriterText ============ */
   // Renders `text` character-by-character starting after `delay` ms,
   // one character every `speed` ms.  Respects prefers-reduced-motion.
+  // Honors **bold** markers via the shared segment parser.
   function TypewriterText({ text, delay = 0, speed = 28, onDone }) {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const [count, setCount] = useState(reducedMotion ? (text ? text.length : 0) : 0);
+    const segments = useMemo(() => parseBoldSegments(text || ""), [text]);
+    const visibleLen = useMemo(
+      () => segments.reduce((a, s) => a + s.text.length, 0),
+      [segments],
+    );
+    const [count, setCount] = useState(reducedMotion ? visibleLen : 0);
     // Keep the latest onDone without re-triggering the typing effect when it changes.
     const doneRef = useRef(onDone);
     doneRef.current = onDone;
     useEffect(() => {
       const fireDone = () => { if (doneRef.current) doneRef.current(); };
       if (!text || reducedMotion) {
-        setCount(text ? text.length : 0);
+        setCount(visibleLen);
         const id = setTimeout(fireDone, 0);
         return () => clearTimeout(id);
       }
@@ -920,12 +967,13 @@
         tick = setInterval(() => {
           current += 1;
           setCount(current);
-          if (current >= text.length) { clearInterval(tick); fireDone(); }
+          if (current >= visibleLen) { clearInterval(tick); fireDone(); }
         }, speed);
       }, delay);
       return () => { clearTimeout(start); if (tick) clearInterval(tick); };
-    }, [text, delay, speed, reducedMotion]);
-    return text ? text.slice(0, count) : null;
+    }, [text, delay, speed, reducedMotion, visibleLen]);
+    if (!text) return null;
+    return <>{boldSegmentNodes(segments, count)}</>;
   }
   // Expose so screens.jsx BotAlert can use it at render time (wizard.jsx loads first in call order)
   window.TypewriterText = TypewriterText;
@@ -1003,10 +1051,10 @@
 
     // Headline — the one-line "here's what I have" the user confirms first.
     const headParts = [];
-    if (n) headParts.push(n + " listing" + (n === 1 ? "" : "s"));
-    if (migration) headParts.push("moving over from " + migration);
+    if (n) headParts.push("**" + n + " listing" + (n === 1 ? "" : "s") + "**");
+    if (migration) headParts.push("moving over from **" + migration + "**");
     else if (firstTime) headParts.push("new to running a PMS");
-    if (addons.length) headParts.push("with " + introJoin(addons) + " in the mix");
+    if (addons.length) headParts.push("with **" + introJoin(addons) + "** in the mix");
     const hasFacts = headParts.length > 0;
     const headline = hasFacts ? headParts.join(", ") : "";
 
@@ -1040,7 +1088,7 @@
       const bits = [];
       if (experienced) bits.push("you've run a PMS before, so you know your way around");
       else if (firstTime) bits.push("this is your first time on a PMS");
-      if (focusLabels.length) bits.push("the thing you most want to get right is " + introJoin(focusLabels));
+      if (focusLabels.length) bits.push("the thing you most want to get right is **" + introJoin(focusLabels) + "**");
       const lead = bits.length === 2
         ? "One more read from the notes: " + bits[0] + ", and " + bits[1] + "."
         : "One more read from the notes — " + (bits[0] || "") + ".";
@@ -1056,7 +1104,7 @@
       confirm2: confirm2Lines,
       clarify2: ["Tell me a little more and I'll adjust."],
       ready: [focusLabels.length
-        ? "Perfect — I've moved your " + introJoin(focusLabels) + " section up so we get to it sooner. Let's dive in."
+        ? "Perfect — I've moved your **" + introJoin(focusLabels) + "** section up so we get to it sooner. Let's dive in."
         : "Perfect — I've got what I need to get started. Let's dive in."],
     };
 
@@ -1173,7 +1221,7 @@
           <div className="intro-thread">
             {history.map((turn, i) => turn.role === "bot" ? (
               <window.AmandaBubble key={"h" + i} name={csmName} compact>
-                {turn.lines.map((ln, j) => <div key={j} className="intro-bot-line">{ln}</div>)}
+                {turn.lines.map((ln, j) => <div key={j} className="intro-bot-line"><RichBold text={ln} /></div>)}
               </window.AmandaBubble>
             ) : (
               <div key={"h" + i} className="intro-user">
