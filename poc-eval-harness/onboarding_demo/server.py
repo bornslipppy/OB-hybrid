@@ -10,7 +10,10 @@ from the poc-eval-harness directory, or `python onboarding_demo/server.py`.
 
 from __future__ import annotations
 
+import base64
+import hmac
 import json
+import os
 import re
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -25,6 +28,13 @@ if str(_HARNESS_ROOT) not in sys.path:
 from onboarding_demo import context_api, llm_copy  # noqa: E402
 
 _WEB_DIR = _HERE / "web"
+
+# Optional HTTP Basic Auth gate. Disabled unless BOTH DEMO_USER and DEMO_PASS are
+# set — so local dev stays frictionless. On Render, set both as env vars (sync:
+# false) to password-protect the hosted demo. Credentials never live in the repo.
+_DEMO_USER = os.environ.get("DEMO_USER", "")
+_DEMO_PASS = os.environ.get("DEMO_PASS", "")
+_AUTH_ENABLED = bool(_DEMO_USER and _DEMO_PASS)
 
 
 class PiiEgressError(RuntimeError):
@@ -79,7 +89,34 @@ class Handler(SimpleHTTPRequestHandler):
             return
         self._send_json(payload, status)
 
+    def _authorized(self) -> bool:
+        """True if the request carries valid Basic Auth, or if the gate is off."""
+        if not _AUTH_ENABLED:
+            return True
+        header = self.headers.get("Authorization", "")
+        if not header.startswith("Basic "):
+            return False
+        try:
+            user, _, password = base64.b64decode(header[6:]).decode("utf-8").partition(":")
+        except Exception:
+            return False
+        # Constant-time compares so a wrong guess can't be narrowed down via timing.
+        return hmac.compare_digest(user, _DEMO_USER) and hmac.compare_digest(password, _DEMO_PASS)
+
+    def _require_auth(self) -> bool:
+        """Allow the request through, or send a 401 challenge and return False."""
+        if self._authorized():
+            return True
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="OB demo", charset="UTF-8"')
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return False
+
     def do_GET(self) -> None:  # noqa: N802
+        if not self._require_auth():
+            return
         parsed = urlparse(self.path)
         if parsed.path.startswith("/api/"):
             self._handle_api(parsed.path, parse_qs(parsed.query))
@@ -87,6 +124,8 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self._require_auth():
+            return
         parsed = urlparse(self.path)
         if parsed.path == "/api/normalize":
             self._handle_normalize()
